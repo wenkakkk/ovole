@@ -814,7 +814,7 @@
 <<<PATCH path="目标文件相对路径" occurrence="last">>>
 <<<<<<< SEARCH
 原文件中需要被替换的一小段精确代码
-=======
+<<<DIVIDER_REPLACE_CONTENT>>>
 修改后的新代码
 >>>>>>> REPLACE
 <<<END_PATCH>>>
@@ -1823,8 +1823,8 @@
       let replace = normalize(replaceBlock);
 
       const trimSearch = search.trim();
-      // 拦截类似 "/*"、"{" 这种单薄标点假补丁
-      if (trimSearch.length < 8 && /^[\/\*\s\{\}\(\)\<\>\=]+$/.test(trimSearch)) {
+      // 如果搜索内容为空则拦截
+      if (!trimSearch) {
         return null;
       }
 
@@ -2203,10 +2203,8 @@
                       if (reasoningEl) reasoningEl.textContent = reasoning;
                     }
 
-                    let liveClean = content.replace(/<(?:think|thought|thinking)>[\s\S]*?<\/(?:think|thought|thinking)>/gi, '')
-                                           .replace(/<(?:think|thought|thinking)>[\s\S]*$/gi, '')
-                                           .replace(/<<<PATCH[\s\S]*?<<<END_PATCH>>>/g, '')
-                                           .replace(/<<<PATCH[\s\S]*$/g, '')
+                    let liveClean = content.replace(/<(?:think|thought|thinking)>[\s\S]*?(?:<\/(?:think|thought|thinking)>|$)/gi, '')
+                                           .replace(/<<<PATCH[\s\S]*$/gi, '')
                                            .trim();
 
                     if (textEl) {
@@ -2307,22 +2305,23 @@
 
         const respTime = getFormattedTime();
 
-        // 提取精准局部修改补丁（支持 AI 自选 occurrence="1"、"2"、"first"、"last"、"all"）
-        const patchRegex = /<<<PATCH\s+path="([^"]+)"(?:\s+occurrence="([^"]+)")?>>>[\s\S]*?<<<<<<< SEARCH([\s\S]*?)=======([\s\S]*?)>>>>>>> REPLACE[\s\S]*?<<<END_PATCH>>>/g;
+        // 提取精准局部修改补丁（支持容错与未闭合兜底）
+        const patchRegex = /<<<PATCH\s+path="([^"]+)"(?:\s+occurrence="([^"]+)")?[^>]*>>>[\s\S]*?<<<<<<< SEARCH([\s\S]*?)(?:<<<DIVIDER_REPLACE_CONTENT>>>|\n={7,}\n)([\s\S]*?)(?:>>>>>>> REPLACE[\s\S]*?<<<END_PATCH>>>|>>>>>>> REPLACE[\s\S]*?$|<<<END_PATCH>>>|$)/g;
         const patches = [];
         let pMatch;
         while ((pMatch = patchRegex.exec(content)) !== null) {
+          const rawSearch = pMatch[3] || '';
+          let rawReplace = pMatch[4] || '';
+          rawReplace = rawReplace.replace(/>>>>>>> REPLACE[\s\S]*$/, '').replace(/<<<END_PATCH>>>[\s\S]*$/, '');
           patches.push({
             path: pMatch[1].trim(),
             occurrence: pMatch[2] ? pMatch[2].trim().toLowerCase() : 'last',
-            search: pMatch[3].replace(/^\n/, '').replace(/\n$/, ''),
-            replace: pMatch[4].replace(/^\n/, '').replace(/\n$/, '')
+            search: rawSearch.replace(/^\n/, '').replace(/\n$/, ''),
+            replace: rawReplace.replace(/^\n/, '').replace(/\n$/, '')
           });
         }
 
-        let cleanText = content.replace(/<<<PATCH path="[^"]+">>>[\s\S]*?<<<END_PATCH>>>/g, '')
-                               .replace(/<<<PATCH[\s\S]*?<<<END_PATCH>>>/g, '')
-                               .trim();
+        let cleanText = content.replace(/<<<PATCH[\s\S]*?(?:<<<END_PATCH>>>|$)/g, '').trim();
 
         // 如果是流式模式，直接原位更新 activeDom，挂载最终补丁与 token 信息；若非流式则全新渲染
         if (activeDom) {
@@ -2369,7 +2368,7 @@
 
         // 执行自动推送
         if (willPushToGit) {
-          executePatchPushPipeline(patches);
+          await executePatchPushPipeline(patches);
         }
 
         await saveCurrentConversation();
@@ -2386,7 +2385,7 @@
       }
     }
 
-    /* ================= 7. 执行局部修改与推送流水线 (关闭悬停卡死) ================= */
+    /* ================= 7. 执行局部修改与推送流水线 (原版极简UI与状态输出) ================= */
     async function executePatchPushPipeline(patches) {
       const banner = document.createElement('div');
       banner.className = 'w-full my-2 bg-claude-sidebar border border-claude-border rounded-xl p-3 text-xs space-y-1.5 transition-all';
@@ -2408,20 +2407,25 @@
         filePatches[p.path].push(p);
       });
 
+      let pushSuccessCount = 0;
+      let hasError = false;
+
       try {
         for (const rawFilePath of Object.keys(filePatches)) {
-          try {
-            // 路径智能容错：自动在文件名和相对路径之间模糊对齐
-            let matchedKey = Object.keys(state.loadedFilesMap).find(k => 
-              k === rawFilePath || k.endsWith('/' + rawFilePath) || rawFilePath.endsWith('/' + k) || k.split('/').pop() === rawFilePath.split('/').pop()
-            );
-            const filePath = matchedKey || rawFilePath;
-            let fileObj = state.loadedFilesMap[filePath];
-            const isLocalFile = Boolean(fileObj && fileObj.isLocal);
+          const currentFilePatches = filePatches[rawFilePath] || [];
+          let matchedKey = Object.keys(state.loadedFilesMap).find(k => 
+            k === rawFilePath || k.endsWith('/' + rawFilePath) || rawFilePath.endsWith('/' + k) || k.split('/').pop() === rawFilePath.split('/').pop()
+          );
+          const filePath = matchedKey || rawFilePath;
+          let fileObj = state.loadedFilesMap[filePath];
+          const isLocalFile = Boolean(fileObj && fileObj.isLocal);
 
+          // 1. 修改代码阶段
+          let updatedContent = '';
+          try {
             if (!fileObj || !fileObj.content) {
               if (isLocalFile) {
-                throw new Error('本地文件内容为空，无法打补丁');
+                throw new Error('本地文件内容为空，无法替换');
               }
               const checkRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}?ref=${state.git.branch}`, {
                 headers: { 'Authorization': `Bearer ${state.git.token}` }
@@ -2437,17 +2441,34 @@
               state.loadedFilesMap[filePath] = fileObj;
             }
 
-            let updatedContent = fileObj.content;
-            const currentFilePatches = filePatches[filePath];
-
+            updatedContent = fileObj.content;
             for (const patch of currentFilePatches) {
               const patched = applyPatch(updatedContent, patch.search, patch.replace, patch.occurrence || 'last');
               if (patched === null) {
-                throw new Error(`局部片段未在原文件中找到匹配`);
+                throw new Error('未在当前文件匹配到 SEARCH 片段');
               }
               updatedContent = patched;
             }
 
+            logDiv.innerHTML += `
+              <div class="text-claude-success flex items-center gap-1 font-mono font-bold">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                修改成功 [${filePath}]
+              </div>
+            `;
+          } catch (patchErr) {
+            hasError = true;
+            logDiv.innerHTML += `
+              <div class="text-red-500 flex items-center gap-1 font-mono font-bold">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                修改失败 [${filePath}]: ${patchErr.message}
+              </div>
+            `;
+            continue;
+          }
+
+          // 2. 推送代码阶段
+          try {
             if (isLocalFile) {
               state.loadedFilesMap[filePath].content = updatedContent;
               state.loadedFilesMap[filePath].lastUpdated = Date.now();
@@ -2455,51 +2476,86 @@
               renderLocalFilesTree();
               renderSelectedFileChips();
               logDiv.innerHTML += `
-                <div class="text-blue-600 flex items-center gap-1 font-mono">
+                <div class="text-blue-600 flex items-center gap-1 font-mono font-bold">
                   <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                  [本地导入文件] 已更新内容: ${filePath}
+                  本地文件已同步生效: ${filePath}
                 </div>
               `;
+              pushSuccessCount++;
             } else {
+              let currentSha = fileObj.sha;
+              try {
+                const headRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}?ref=${state.git.branch}`, {
+                  headers: { 'Authorization': `Bearer ${state.git.token}` }
+                });
+                if (headRes.ok) {
+                  const headData = await headRes.json();
+                  currentSha = headData.sha;
+                }
+              } catch(e) {}
+
               const base64Content = btoa(unescape(encodeURIComponent(updatedContent)));
+              const putBody = {
+                message: `Patch update ${filePath} via mobile AI`,
+                content: base64Content,
+                branch: state.git.branch
+              };
+              if (currentSha) putBody.sha = currentSha;
+
               const putRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${state.git.token}`,
                   'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                  message: `Patch update ${filePath} via mobile AI`,
-                  content: base64Content,
-                  sha: fileObj.sha,
-                  branch: state.git.branch
-                })
+                body: JSON.stringify(putBody)
               });
 
-              if (!putRes.ok) throw new Error('Git推送失败');
+              if (!putRes.ok) {
+                let errText = `HTTP ${putRes.status}`;
+                try {
+                  const errJson = await putRes.json();
+                  errText = errJson.message || errText;
+                } catch(e) {}
+                throw new Error(errText);
+              }
+
               const putData = await putRes.json();
-              state.loadedFilesMap[filePath] = { path: filePath, sha: putData.content.sha, content: updatedContent, isLocal: false };
+              state.loadedFilesMap[filePath] = { path: filePath, sha: putData.content?.sha || currentSha, content: updatedContent, isLocal: false };
               syncUpdatedFileToConversationContext(filePath, updatedContent);
               renderSelectedFileChips();
 
               logDiv.innerHTML += `
-                <div class="text-claude-success flex items-center gap-1 font-mono">
+                <div class="text-claude-success flex items-center gap-1 font-mono font-bold">
                   <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                  已精准打补丁并推送: ${filePath} (Commit: ${putData.commit.sha.substring(0,7)})
+                  推送成功 [${filePath}] (Commit: ${putData.commit.sha.substring(0,7)})
                 </div>
               `;
+              pushSuccessCount++;
             }
-          } catch (err) {
-            logDiv.innerHTML += `<div class="text-red-500 font-mono">修改失败 [${filePath}]: ${err.message}</div>`;
+          } catch (pushErr) {
+            hasError = true;
+            logDiv.innerHTML += `
+              <div class="text-red-500 flex items-center gap-1 font-mono font-bold">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                推送失败 [${filePath}]: ${pushErr.message}
+              </div>
+            `;
           }
         }
       } finally {
-        // 关键修复：无论成功或失败，移除 spin 动画，标明处理完毕，彻底解决卡死假象
         titleDiv.className = 'font-medium text-claude-text flex items-center gap-1.5';
-        titleDiv.innerHTML = `
-          <svg class="w-4 h-4 text-claude-success flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          推送流程已全部完成
-        `;
+        if (hasError && pushSuccessCount === 0) {
+          titleDiv.innerHTML = `
+            <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-red-500 font-bold">推送流程失败</span>
+          `;
+        } else {
+          titleDiv.innerHTML = `
+            <svg class="w-4 h-4 text-claude-success flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-claude-success font-bold">推送流程已全部完成</span>
+          `;
+        }
       }
 
       const vp = document.getElementById('chat-viewport');
