@@ -394,9 +394,27 @@
 
       <!-- 板块 3: 提示词与界面自定义 -->
       <div id="section-settings-prompt" class="space-y-4 hidden">
-        <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-2 text-xs">
-          <span class="font-semibold text-xs text-claude-text block border-b border-claude-border pb-2">自定义系统提示词 (System Prompt)</span>
-          <textarea id="cfg-custom-prompt" rows="5" placeholder="在此输入自定义系统提示词，留空则使用内置高级工程师格式..." class="w-full bg-claude-bg border border-claude-border rounded-xl p-2.5 text-xs font-mono select-text focus:outline-none leading-relaxed"></textarea>
+        <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 text-xs">
+          <div class="flex items-center justify-between border-b border-claude-border pb-2">
+            <span class="font-semibold text-xs text-claude-text">系统提示词方案与预设</span>
+            <div class="flex items-center gap-2">
+              <button onclick="resetPromptToDefault()" class="text-claude-accent active:underline text-[10px]">恢复内置默认</button>
+              <button onclick="deleteCurrentPromptPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <select id="prompt-preset-selector" onchange="onPromptPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
+            </select>
+            <button onclick="saveAsNewPromptPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
+              另存预设
+            </button>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-claude-muted text-[11px] font-medium">提示词内容 (可在原版上修改)：</label>
+            <textarea id="cfg-custom-prompt" rows="8" placeholder="在此输入系统提示词..." class="w-full bg-claude-bg border border-claude-border rounded-xl p-2.5 text-xs font-mono select-text focus:outline-none leading-relaxed"></textarea>
+          </div>
         </div>
 
         <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-2 text-xs">
@@ -569,6 +587,26 @@
       <div class="flex justify-end gap-2 pt-2 border-t border-claude-border">
         <button onclick="closeModal('preset-save-modal')" class="px-3 py-1.5 rounded-lg border border-claude-border text-xs text-claude-muted">取消</button>
         <button onclick="confirmSaveNewPresetFromModal()" class="px-3 py-1.5 rounded-lg bg-claude-accent text-white text-xs font-medium active:bg-claude-accentHover">保存预设</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 弹窗：另存提示词方案预设 ================= -->
+  <div id="prompt-preset-save-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-claude-card w-full max-w-xs rounded-2xl border border-claude-border shadow-xl p-4 space-y-3">
+      <div class="flex justify-between items-center border-b border-claude-border pb-2">
+        <span class="font-semibold text-sm text-claude-text">另存提示词方案</span>
+        <button onclick="closeModal('prompt-preset-save-modal')" class="p-1 text-claude-muted hover:text-claude-text">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="space-y-1.5 text-xs">
+        <label class="block text-claude-muted font-medium">方案名称</label>
+        <input type="text" id="new-prompt-preset-name-input" placeholder="例如: 全栈开发 / 极简代码模式" class="w-full bg-claude-bg border border-claude-border rounded-xl p-2.5 text-xs focus:outline-none select-text">
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-claude-border">
+        <button onclick="closeModal('prompt-preset-save-modal')" class="px-3 py-1.5 rounded-lg border border-claude-border text-xs text-claude-muted">取消</button>
+        <button onclick="confirmSaveNewPromptPreset()" class="px-3 py-1.5 rounded-lg bg-claude-accent text-white text-xs font-medium active:bg-claude-accentHover">保存预设</button>
       </div>
     </div>
   </div>
@@ -769,6 +807,22 @@
       deferredPwaPrompt = e;
     });
 
+    const DEFAULT_SYSTEM_PROMPT = `你是一个顶级智能助手，精通全栈工程开发，也擅长解答各类日常问题与进行自由深度交谈。
+【行为规范】：
+1. 正常闲聊、解答疑问、技术咨询时：用清晰生动的方式直接回答，畅所欲言。
+2. 涉及代码修改诉求时：只输出局部修改，严禁输出完整大文件！必须严格按照以下格式输出局部替换块：
+<<<PATCH path="目标文件相对路径">>>
+<<<<<<< SEARCH
+原文件中需要被替换的一小段精确代码
+=======
+修改后的新代码
+>>>>>>> REPLACE
+<<<END_PATCH>>>
+3. SEARCH搜索块规则（至关重要）：
+- SEARCH块中的代码必须原原本本来自文件现有内容，严禁臆造。
+- 每轮输出修改之前必须先阅读读取文件，必须仔细阅读文件源代码。
+- 必须包含目标代码前后各2至3行未修改的上下文，保证在整个文件中有且仅有唯一的匹配位置，避免标签嵌套错乱。`;
+
     const state = {
       git: { token: '', repo: '', branch: 'main' },
       aiPresets: [
@@ -782,8 +836,16 @@
         }
       ],
       currentPresetId: 'preset_default',
+      promptPresets: [
+        {
+          id: 'prompt_default',
+          name: '内置全栈工程师 (默认)',
+          content: DEFAULT_SYSTEM_PROMPT
+        }
+      ],
+      currentPromptPresetId: 'prompt_default',
       streamOutput: true,
-      customPrompt: '',
+      customPrompt: DEFAULT_SYSTEM_PROMPT,
       customCss: '',
       autoPush: true,
       currentConversationId: null,
@@ -818,9 +880,20 @@
       if (savedStream !== null && savedStream !== undefined) state.streamOutput = savedStream.val;
       document.getElementById('stream-toggle').checked = state.streamOutput;
 
-      const savedPrompt = await storage.get('settings', 'custom_prompt');
-      if (savedPrompt) state.customPrompt = savedPrompt.val || '';
+      const savedPromptPresets = await storage.get('settings', 'prompt_presets');
+      if (savedPromptPresets && Array.isArray(savedPromptPresets.val) && savedPromptPresets.val.length > 0) {
+        state.promptPresets = savedPromptPresets.val;
+      }
+
+      const savedPromptPresetId = await storage.get('settings', 'current_prompt_preset_id');
+      if (savedPromptPresetId && savedPromptPresetId.val) {
+        state.currentPromptPresetId = savedPromptPresetId.val;
+      }
+
+      const activePromptPreset = getCurrentPromptPreset();
+      state.customPrompt = activePromptPreset ? activePromptPreset.content : DEFAULT_SYSTEM_PROMPT;
       document.getElementById('cfg-custom-prompt').value = state.customPrompt;
+      renderPromptPresetOptions();
 
       const savedCss = await storage.get('settings', 'custom_css');
       if (savedCss) {
@@ -971,6 +1044,11 @@
         renderHistoryList();
         alert('历史会话已清理！');
       }
+      // 同步重置当前界面选中的幽灵附件与 Token 计数
+      state.selectedPaths.clear();
+      renderSelectedFileChips();
+      updateBatchActionBar();
+      updateRealtimeTokenEstimator();
       renderStorageMemoryAnalytics();
     }
 
@@ -1189,12 +1267,18 @@
       state.git.repo = document.getElementById('git-custom-repo').value.trim();
       state.git.branch = document.getElementById('git-branch').value.trim() || 'main';
 
-      state.customPrompt = document.getElementById('cfg-custom-prompt').value.trim();
+      state.customPrompt = document.getElementById('cfg-custom-prompt').value.trim() || DEFAULT_SYSTEM_PROMPT;
+      const curPromptPreset = getCurrentPromptPreset();
+      if (curPromptPreset) {
+        curPromptPreset.content = state.customPrompt;
+      }
       state.customCss = document.getElementById('cfg-custom-css').value;
       applyCustomCss(state.customCss);
 
       await storage.set('settings', { key: 'git_config', val: state.git });
       await storage.set('settings', { key: 'ai_presets', val: state.aiPresets });
+      await storage.set('settings', { key: 'prompt_presets', val: state.promptPresets });
+      await storage.set('settings', { key: 'current_prompt_preset_id', val: state.currentPromptPresetId });
       await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
       await storage.set('settings', { key: 'custom_css', val: state.customCss });
 
@@ -1394,6 +1478,98 @@
       renderPresetOptions();
       syncPresetFormUI();
       updateModelDisplay();
+    }
+
+    /* ================= 提示词方案管理逻辑 ================= */
+    function getCurrentPromptPreset() {
+      return state.promptPresets.find(p => p.id === state.currentPromptPresetId) || state.promptPresets[0];
+    }
+
+    function renderPromptPresetOptions() {
+      const sel = document.getElementById('prompt-preset-selector');
+      if (!sel) return;
+      sel.innerHTML = '';
+      state.promptPresets.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.innerText = p.name;
+        if (p.id === state.currentPromptPresetId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    async function onPromptPresetSelected() {
+      const curPreset = getCurrentPromptPreset();
+      if (curPreset) {
+        curPreset.content = document.getElementById('cfg-custom-prompt').value.trim();
+      }
+
+      const selId = document.getElementById('prompt-preset-selector').value;
+      state.currentPromptPresetId = selId;
+      await storage.set('settings', { key: 'current_prompt_preset_id', val: selId });
+      await storage.set('settings', { key: 'prompt_presets', val: state.promptPresets });
+
+      const newActive = getCurrentPromptPreset();
+      if (newActive) {
+        state.customPrompt = newActive.content;
+        document.getElementById('cfg-custom-prompt').value = newActive.content;
+      }
+    }
+
+    function saveAsNewPromptPreset() {
+      const input = document.getElementById('new-prompt-preset-name-input');
+      if (input) input.value = `自定义提示词_${getFormattedTime().replace(/:/g, '')}`;
+      openModal('prompt-preset-save-modal');
+    }
+
+    async function confirmSaveNewPromptPreset() {
+      const input = document.getElementById('new-prompt-preset-name-input');
+      const name = input ? input.value.trim() : '';
+      if (!name) return alert('请输入方案名称');
+
+      const content = document.getElementById('cfg-custom-prompt').value.trim() || DEFAULT_SYSTEM_PROMPT;
+      const newPreset = {
+        id: 'prompt_' + Date.now(),
+        name: name,
+        content: content
+      };
+
+      state.promptPresets.push(newPreset);
+      state.currentPromptPresetId = newPreset.id;
+      state.customPrompt = content;
+
+      await storage.set('settings', { key: 'prompt_presets', val: state.promptPresets });
+      await storage.set('settings', { key: 'current_prompt_preset_id', val: state.currentPromptPresetId });
+      await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
+
+      renderPromptPresetOptions();
+      closeModal('prompt-preset-save-modal');
+      alert(`已成功保存为预设方案 [${name}]！`);
+    }
+
+    async function deleteCurrentPromptPreset() {
+      if (state.promptPresets.length <= 1) return alert('请至少保留一个提示词方案');
+      if (state.currentPromptPresetId === 'prompt_default') return alert('内置默认方案不可删除');
+      if (!confirm('确定删除当前选中的提示词预设方案吗？')) return;
+
+      state.promptPresets = state.promptPresets.filter(p => p.id !== state.currentPromptPresetId);
+      state.currentPromptPresetId = state.promptPresets[0].id;
+      state.customPrompt = state.promptPresets[0].content;
+
+      await storage.set('settings', { key: 'prompt_presets', val: state.promptPresets });
+      await storage.set('settings', { key: 'current_prompt_preset_id', val: state.currentPromptPresetId });
+      await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
+
+      renderPromptPresetOptions();
+      document.getElementById('cfg-custom-prompt').value = state.customPrompt;
+    }
+
+    function resetPromptToDefault() {
+      if (!confirm('确定将当前输入框的内容恢复为系统内置原版提示词吗？')) return;
+      document.getElementById('cfg-custom-prompt').value = DEFAULT_SYSTEM_PROMPT;
+      state.customPrompt = DEFAULT_SYSTEM_PROMPT;
+      const curPreset = getCurrentPromptPreset();
+      if (curPreset) curPreset.content = DEFAULT_SYSTEM_PROMPT;
     }
 
     /* ================= 4. 高性能折叠目录树与批量载入 ================= */
@@ -1636,10 +1812,10 @@
     function applyPatch(originalContent, searchBlock, replaceBlock) {
       if (!originalContent || !searchBlock) return null;
       
-      const normalize = (s) => s.replace(/\r\n/g, '\n');
-      const orig = normalize(originalContent);
-      const search = normalize(searchBlock);
-      const replace = normalize(replaceBlock);
+      const normalize = (s) => s.replace(/\r\n/g, '\n').replace(/\t/g, '  ');
+      let orig = normalize(originalContent);
+      let search = normalize(searchBlock);
+      let replace = normalize(replaceBlock);
 
       // 阶段 1：完全精准字面量匹配
       if (orig.includes(search)) {
@@ -1652,23 +1828,29 @@
         return orig.replace(trimSearch, replace.trim());
       }
 
-      // 阶段 3：按行忽略缩进与空白匹配
+      // 阶段 3：按行忽略缩进与行尾空格匹配
       const origLines = orig.split('\n');
-      const searchLines = search.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const searchLines = search.split('\n').map(l => l.trimEnd());
+      
+      // 去除 searchLines 首尾多余的纯空行
+      while (searchLines.length > 0 && searchLines[0].trim() === '') searchLines.shift();
+      while (searchLines.length > 0 && searchLines[searchLines.length - 1].trim() === '') searchLines.pop();
       if (searchLines.length === 0) return null;
 
       for (let i = 0; i <= origLines.length - searchLines.length; i++) {
         let matched = true;
         for (let j = 0; j < searchLines.length; j++) {
-          if (origLines[i + j].trim() !== searchLines[j]) {
+          if (origLines[i + j].trim() !== searchLines[j].trim()) {
             matched = false;
             break;
           }
         }
         if (matched) {
-          const matchedIndent = origLines[i].match(/^\s*/)[0] || '';
-          const adjustedReplace = replace.split('\n').map((line, idx) => {
-            return idx === 0 ? line : (matchedIndent + line.replace(/^\s*/, ''));
+          const baseIndentMatch = origLines[i].match(/^\s*/);
+          const matchedIndent = baseIndentMatch ? baseIndentMatch[0] : '';
+          const replaceLines = replace.split('\n');
+          const adjustedReplace = replaceLines.map((line, idx) => {
+            return idx === 0 && line.startsWith(matchedIndent) ? line : (matchedIndent + line.replace(/^\s*/, ''));
           }).join('\n');
           origLines.splice(i, searchLines.length, adjustedReplace);
           return origLines.join('\n');
@@ -1676,13 +1858,13 @@
       }
 
       // 阶段 4：滑动窗口忽略空行模糊匹配 (高容错)
-      const nonBlankSearch = search.split('\n').map(l => l.trim()).filter(Boolean);
+      const nonBlankSearch = searchLines.filter(l => l.trim().length > 0);
       for (let i = 0; i < origLines.length; i++) {
-        if (origLines[i].trim() !== nonBlankSearch[0]) continue;
+        if (origLines[i].trim() !== nonBlankSearch[0].trim()) continue;
         let matchCount = 0;
         let scanIdx = i;
         while (scanIdx < origLines.length && matchCount < nonBlankSearch.length) {
-          if (origLines[scanIdx].trim() === nonBlankSearch[matchCount]) {
+          if (origLines[scanIdx].trim() === nonBlankSearch[matchCount].trim()) {
             matchCount++;
           } else if (origLines[scanIdx].trim() !== '') {
             break;
@@ -1695,7 +1877,6 @@
         }
       }
 
-      // 彻底移除阶段5首尾行盲目容错，防止div闭合标签错位导致的大面积嵌套与错乱损坏
       return null;
     }
 
@@ -1750,13 +1931,17 @@
 
       let apiPrompt = text || '请处理附带内容。';
       if (selectedPaths.length > 0) {
-        let bundleContext = `\n\n【关联最新文件内容 (已同步至最新修改状态)】：\n`;
+        let bundleContext = `\n\n========================================\n【⚠️核心指令：以下为关联文件的最新实时代码，必须先仔细逐行阅读！严禁臆造代码！】：\n`;
         selectedPaths.forEach(p => {
           const fileData = state.loadedFilesMap[p];
           if (fileData && fileData.content) {
-            bundleContext += `<<<FILE_CONTENT path="${p}">>>\n${fileData.content}\n<<<END_FILE_CONTENT>>>\n\n`;
+            bundleContext += `\n<<<FILE_CONTENT path="${p}">>>\n${fileData.content}\n<<<END_FILE_CONTENT>>>\n`;
           }
         });
+        bundleContext += `\n【⚠️特别警告】：
+1. 之前的聊天历史中的旧代码已经过时，必须以上方 <<<FILE_CONTENT>>> 里的实时代码为唯一真理！
+2. 你的 <<<<<<< SEARCH 块代码必须 100% 完完全全、一字不差地从上方实时代码中复制，包括每一处空格和标点！严禁使用 // ... 等缩写，严禁臆造！
+========================================\n`;
         apiPrompt += bundleContext;
       }
 
@@ -1791,6 +1976,11 @@
 
       input.value = '';
       clearSelectedImage();
+      // 发送后立即清空当前选中的上下文文件，杜绝后续无意义的重复巨额 Token 消耗
+      state.selectedPaths.clear();
+      renderSelectedFileChips();
+      updateBatchActionBar();
+      updateRealtimeTokenEstimator();
 
       // 切换发送按钮为动态输出动画效果
       const sendBtn = document.getElementById('send-btn');
@@ -1815,23 +2005,7 @@
       });
 
       try {
-        const baseDefaultPrompt = `你是一个顶级智能助手，精通全栈工程开发，也擅长解答各类日常问题与进行自由深度交谈。
-【行为规范】：
-1. 正常闲聊、解答疑问、技术咨询时：用清晰生动的方式直接回答，畅所欲言。
-2. 涉及代码修改诉求时：只输出局部修改，严禁输出完整大文件！必须严格按照以下格式输出局部替换块：
-<<<PATCH path="目标文件相对路径">>>
-<<<<<<< SEARCH
-原文件中需要被替换的一小段精确代码
-=======
-修改后的新代码
->>>>>>> REPLACE
-<<<END_PATCH>>>
-3. SEARCH搜索块规则（至关重要）：
-- SEARCH块中的代码必须原原本本来自文件现有内容，严禁臆造。
-- 每轮输出修改之前必须先阅读读取文件，必须仔细阅读文件源代码。
-- 必须包含目标代码前后各2至3行未修改的上下文，保证在整个文件中有且仅有唯一的匹配位置，避免标签嵌套错乱。`;
-
-        const finalSystemPrompt = state.customPrompt || baseDefaultPrompt;
+        const finalSystemPrompt = state.customPrompt || DEFAULT_SYSTEM_PROMPT;
 
         const messagesToSend = [
           { role: 'system', content: finalSystemPrompt },
@@ -2203,7 +2377,9 @@
             if (isLocalFile) {
               state.loadedFilesMap[filePath].content = updatedContent;
               state.loadedFilesMap[filePath].lastUpdated = Date.now();
+              syncUpdatedFileToConversationContext(filePath, updatedContent);
               renderLocalFilesTree();
+              renderSelectedFileChips();
               logDiv.innerHTML += `
                 <div class="text-blue-600 flex items-center gap-1 font-mono">
                   <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -2229,6 +2405,8 @@
               if (!putRes.ok) throw new Error('Git推送失败');
               const putData = await putRes.json();
               state.loadedFilesMap[filePath] = { path: filePath, sha: putData.content.sha, content: updatedContent, isLocal: false };
+              syncUpdatedFileToConversationContext(filePath, updatedContent);
+              renderSelectedFileChips();
 
               logDiv.innerHTML += `
                 <div class="text-claude-success flex items-center gap-1 font-mono">
@@ -2635,6 +2813,19 @@
       state.messages.splice(index, 1);
       await saveCurrentConversation();
       rebuildChatStreamDOM();
+
+      // 重新精确核算剩余所有消息的真实 Token，彻底清除幽灵 Token 占用
+      let remainingTokens = 0;
+      state.messages.forEach(m => {
+        if (m.usage && m.usage.total_tokens) {
+          remainingTokens = m.usage.total_tokens;
+        } else {
+          const contentStr = typeof m.apiContent === 'string' ? m.apiContent : (m.cleanText || m.content || JSON.stringify(m.displayObj || ''));
+          remainingTokens += Math.max(1, Math.round(contentStr.length / 3.6));
+        }
+      });
+      state.totalSessionTokens = remainingTokens;
+      document.getElementById('footer-token-count').innerText = `${state.totalSessionTokens} tok`;
     }
 
     function regenerateLastResponse() {
