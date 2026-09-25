@@ -115,43 +115,91 @@
         <!-- 整个项目区域（受折叠栏箭头控制） -->
         <div id="project-entire-content" class="space-y-2">
 
-        <!-- 模仿截图的主项目大卡片（墨绿底色，内含文件夹结构） -->
-        <div id="project-card" class="bg-[#8EAA97] text-white rounded-2xl p-3 shadow-xs transition-all">
-          <div class="flex items-center gap-2.5 cursor-pointer" onclick="toggleProjectFolderOpen()">
-            <div class="p-1 rounded text-[#2C4A3E]">
-              <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path>
-              </svg>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div id="sidebar-repo-name" class="font-bold text-sm text-[#1B352B] truncate">tongtong</div>
-              <div id="sidebar-repo-path" class="text-[10px] text-[#2C4A3E]/80 truncate font-mono">/workspace/tongtong</div>
-            </div>
-            <svg id="project-toggle-arrow" class="w-4 h-4 text-[#1B352B] transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
+          <!-- 交互栏：Git 文件区与本地工作区切换 Tab -->
+          <div class="grid grid-cols-2 p-1 bg-claude-inputBg border border-claude-border rounded-xl gap-1 text-xs">
+            <button id="project-tab-btn-git" onclick="switchProjectWorkspaceTab('git')" class="py-1 px-2 rounded-lg font-medium text-center transition-all bg-claude-card text-emerald-800 shadow-2xs">
+              Git 仓库文件
+            </button>
+            <button id="project-tab-btn-local" onclick="switchProjectWorkspaceTab('local')" class="py-1 px-2 rounded-lg font-medium text-center transition-all text-claude-muted hover:text-claude-text">
+              本地工作区
+            </button>
           </div>
 
-          <!-- 卡片展开后：Git 文件的树状文件结构包裹在这个大文件夹内部 -->
-          <div id="project-tree-wrapper" class="mt-2.5 pt-2 border-t border-[#1B352B]/15 text-xs text-claude-text bg-white/95 rounded-xl p-2 max-h-56 overflow-y-auto no-scrollbar hidden">
-            <div id="batch-action-bar" class="hidden bg-claude-card border border-claude-border p-1.5 mb-2 rounded-lg flex items-center justify-between">
-              <span class="text-[10px] text-claude-muted">已选 <span id="selected-files-count" class="text-claude-accent font-bold">0</span> 个文件</span>
-              <button onclick="confirmBatchFilesToContext()" id="btn-batch-confirm" class="bg-claude-accent text-white px-2 py-0.5 rounded text-[11px] font-medium">
-                批量载入
-              </button>
-            </div>
-            <div id="tree-container" class="space-y-0.5 text-xs">
-              <p class="text-[11px] text-claude-muted py-3 text-center">暂未载入文件，点击右上角拉取</p>
+          <!-- 面板 1：Git 仓库独立区域 -->
+          <div id="project-panel-git" class="space-y-2">
+            <div id="project-card" class="bg-[#8EAA97] text-white rounded-2xl p-3 shadow-xs transition-all">
+              <div class="flex items-center gap-2.5 cursor-pointer" onclick="toggleProjectFolderOpen('git')">
+                <div class="p-1 rounded text-[#2C4A3E]">
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path>
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[9px] px-1 py-0.2 rounded bg-[#2C4A3E]/20 text-[#1B352B] font-mono">Git仓库</span>
+                    <span id="sidebar-repo-name" class="font-bold text-sm text-[#1B352B] truncate">未绑定</span>
+                  </div>
+                  <div id="sidebar-repo-path" class="text-[10px] text-[#2C4A3E]/80 truncate font-mono">/workspace/git</div>
+                </div>
+                <svg id="project-toggle-arrow" class="w-4 h-4 text-[#1B352B] transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+
+              <!-- Git 仓库树状结构容器 -->
+              <div id="project-tree-wrapper" class="mt-2.5 pt-2 border-t border-[#1B352B]/15 text-xs text-claude-text bg-white/95 rounded-xl p-2 max-h-52 overflow-y-auto no-scrollbar hidden">
+                <div id="tree-container" class="space-y-0.5 text-xs">
+                  <p class="text-[11px] text-claude-muted py-3 text-center">暂未载入 Git 文件，点击右上角拉取</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- “+ 添加项目” 按钮 (直接本地导入工程文件并载入项目工作区) -->
-        <input type="file" id="sidebar-project-importer" multiple class="hidden" onchange="handleProjectFolderBatchImport(event)">
-        <button onclick="document.getElementById('sidebar-project-importer').click()" class="flex items-center gap-2 text-xs font-semibold text-emerald-800 hover:text-emerald-900 active:opacity-70 py-1.5 px-1">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-          <span>本地导入</span>
-        </button>
+          <!-- 面板 2：本地导入项目独立区域 -->
+          <div id="project-panel-local" class="space-y-2 hidden">
+            <div id="local-project-card" class="bg-[#94A3B8] text-white rounded-2xl p-3 shadow-xs transition-all">
+              <div class="flex items-center gap-2.5 cursor-pointer" onclick="toggleProjectFolderOpen('local')">
+                <div class="p-1 rounded text-[#1E293B]">
+                  <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"></path>
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[9px] px-1 py-0.2 rounded bg-[#1E293B]/20 text-[#0F172A] font-mono">本地导入</span>
+                    <span id="local-project-name" class="font-bold text-sm text-[#0F172A] truncate">本地工作区</span>
+                  </div>
+                  <div id="local-project-count" class="text-[10px] text-[#1E293B]/80 truncate font-mono">已导入 0 个文件</div>
+                </div>
+                <svg id="local-toggle-arrow" class="w-4 h-4 text-[#0F172A] transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+
+              <!-- 本地文件列表容器 -->
+              <div id="local-tree-wrapper" class="mt-2.5 pt-2 border-t border-[#0F172A]/15 text-xs text-claude-text bg-white/95 rounded-xl p-2 max-h-52 overflow-y-auto no-scrollbar hidden">
+                <div id="local-tree-container" class="space-y-0.5 text-xs">
+                  <p class="text-[11px] text-claude-muted py-3 text-center">暂未导入本地文件</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 本地导入动作按钮 -->
+            <input type="file" id="sidebar-project-importer" multiple class="hidden" onchange="handleProjectFolderBatchImport(event)">
+            <button onclick="document.getElementById('sidebar-project-importer').click()" class="flex items-center gap-2 text-xs font-semibold text-slate-700 hover:text-slate-900 active:opacity-70 py-1 px-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+              <span>导入本地文件/项目</span>
+            </button>
+          </div>
+
+          <!-- 统一的批量载入栏 -->
+          <div id="batch-action-bar" class="hidden bg-claude-card border border-claude-border p-2 rounded-xl flex items-center justify-between shadow-xs">
+            <span class="text-[11px] text-claude-muted">已勾选 <span id="selected-files-count" class="text-claude-accent font-bold">0</span> 个文件</span>
+            <button onclick="confirmBatchFilesToContext()" id="btn-batch-confirm" class="bg-claude-accent text-white px-2.5 py-1 rounded-lg text-xs font-medium active:scale-95 transition-transform">
+              载入上下文
+            </button>
+          </div>
+
         </div>
       </div>
 
@@ -270,6 +318,9 @@
       </button>
       <button id="set-tab-data" onclick="switchSettingsSection('data')" class="py-3 px-3 text-xs font-semibold text-claude-muted flex items-center gap-1.5 whitespace-nowrap">
         <span>数据管理</span>
+      </button>
+      <button id="set-tab-disclaimer" onclick="switchSettingsSection('disclaimer')" class="py-3 px-3 text-xs font-semibold text-claude-muted flex items-center gap-1.5 whitespace-nowrap">
+        <span>免责声明</span>
       </button>
     </div>
 
@@ -451,7 +502,7 @@
 
         <!-- 极简 Claude 风格底部提示 -->
         <div class="text-center text-[10px] text-claude-muted/70 select-none pb-2 flex items-center justify-center gap-1">
-          <svg class="w-3 h-3 text-claude-muted/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-3.5 h-3.5 text-claude-muted/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
           <span>导入备份将覆盖现有会话，请确保当前重要数据已导出</span>
@@ -459,8 +510,28 @@
 
       </div>
 
+      <!-- 板块 5: 免责声明 -->
+      <div id="section-settings-disclaimer" class="space-y-4 hidden pt-1">
+        <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 text-xs">
+          <div class="flex items-center gap-2 border-b border-claude-border pb-2">
+            <svg class="w-4 h-4 text-claude-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <span class="font-semibold text-xs text-claude-text">软件使用免责与合规声明</span>
+          </div>
+          
+          <div class="space-y-2.5 text-claude-muted text-[11px] leading-relaxed">
+            <p>1. <strong class="text-claude-text">数据安全与隐私保护</strong>：本软件为纯前端本地化运行工具，所有的 API Key、GitHub Token、本地导入文件及聊天记录均仅保存在您当前设备的浏览器 IndexedDB 中，不会向除您自主配置的接口之外的任何第三方服务器上传数据。</p>
+            <p>2. <strong class="text-claude-text">AI 生成内容准确性</strong>：AI 生成的代码、补丁方案及解释均由第三方大语言模型生成，受模型训练集及偶发幻觉影响，可能存在逻辑错误、兼容性缺失或性能缺陷。在推送或部署至生产环境前，使用者有义务自行核对与测试。</p>
+            <p>3. <strong class="text-claude-text">代码推送与版本安全</strong>：自动推送功能将根据补丁直接提交并覆盖 GitHub 对应文件。使用者应知悉代码提交操作的风险，建议在独立分支中运行或事先进行完备的 Git 历史备份，开发者不对因代码推送产生的任何工程故障、数据丢失或业务中断承担责任。</p>
+            <p>4. <strong class="text-claude-text">合规使用规范</strong>：请遵守相关法律法规及第三方 API 提供商的服务协议，严禁将本工具用于任何侵犯知识产权、危害网络安全或违反法律的活动。</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
+
 
   <!-- ================= 弹窗：编辑消息 ================= -->
   <div id="edit-message-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
@@ -760,7 +831,7 @@
 
     // 设置中心分板块交互控制 (完全禁止 emoji，纯字卡切换)
     function switchSettingsSection(sectionKey) {
-      const tabs = ['ai', 'git', 'prompt', 'data'];
+      const tabs = ['ai', 'git', 'prompt', 'data', 'disclaimer'];
       tabs.forEach(tab => {
         const tabBtn = document.getElementById(`set-tab-${tab}`);
         const panel = document.getElementById(`section-settings-${tab}`);
@@ -863,7 +934,7 @@
       renderStorageMemoryAnalytics();
     }
 
-    // 本地导入整个文件夹或多个文件作为项目
+    // 本地导入整个文件夹或多个文件作为独立本地项目
     function handleProjectFolderBatchImport(e) {
       const files = Array.from(e.target.files);
       if (!files.length) return;
@@ -883,33 +954,40 @@
           state.selectedPaths.add(path);
           importCount++;
           if (importCount === files.length) {
-            // 构建侧边栏项目目录树
-            const paths = Object.keys(state.loadedFilesMap);
-            const rootTree = buildDirectoryTree(paths);
-            const container = document.getElementById('tree-container');
-            if (container) {
-              container.innerHTML = '';
-              container.appendChild(renderTreeNode(rootTree, 0));
-            }
-            const wrapper = document.getElementById('project-tree-wrapper');
+            renderLocalFilesTree();
+            const wrapper = document.getElementById('local-tree-wrapper');
             if (wrapper) wrapper.classList.remove('hidden');
-            const arrow = document.getElementById('project-toggle-arrow');
+            const arrow = document.getElementById('local-toggle-arrow');
             if (arrow) arrow.style.transform = 'rotate(180deg)';
 
-            const projectName = files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : 'local-project';
-            const nameEl = document.getElementById('sidebar-repo-name');
-            const pathEl = document.getElementById('sidebar-repo-path');
+            const projectName = files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : '本地项目';
+            const nameEl = document.getElementById('local-project-name');
             if (nameEl) nameEl.innerText = projectName;
-            if (pathEl) pathEl.innerText = `/workspace/${projectName}`;
 
             renderSelectedFileChips();
             updateBatchActionBar();
-            alert(`已成功导入本地项目 [${projectName}]，共 ${files.length} 个文件，已加入工作区！`);
+            alert(`已成功导入本地文件/项目 [${projectName}]，共 ${files.length} 个文件，与 Git 仓库独立共存！`);
           }
         };
         reader.readAsText(file);
       });
       e.target.value = '';
+    }
+
+    // 独立渲染本地导入文件列表/树
+    function renderLocalFilesTree() {
+      const localPaths = Object.keys(state.loadedFilesMap).filter(p => state.loadedFilesMap[p].isLocal);
+      const container = document.getElementById('local-tree-container');
+      const countEl = document.getElementById('local-project-count');
+      if (countEl) countEl.innerText = `已导入 ${localPaths.length} 个文件`;
+      if (!container) return;
+      if (localPaths.length === 0) {
+        container.innerHTML = '<p class="text-[11px] text-claude-muted py-3 text-center">暂未导入本地文件</p>';
+        return;
+      }
+      const rootTree = buildDirectoryTree(localPaths);
+      container.innerHTML = '';
+      container.appendChild(renderTreeNode(rootTree, 0));
     }
 
     // 打开拉取模型弹窗 (彻底杜绝跨方案污染，精准绑定目标预设 ID)
@@ -1161,14 +1239,37 @@
       tokEl.innerText = `${state.totalSessionTokens + estimatedInputTok} tok`;
     }
 
-    // 展开/折叠项目绿色文件夹包裹层
-    function toggleProjectFolderOpen() {
-      const wrapper = document.getElementById('project-tree-wrapper');
-      const arrow = document.getElementById('project-toggle-arrow');
+    // 展开/折叠项目文件夹包裹层 (支持区分 git 与 local)
+    function toggleProjectFolderOpen(type = 'git') {
+      const isGit = type === 'git';
+      const wrapper = document.getElementById(isGit ? 'project-tree-wrapper' : 'local-tree-wrapper');
+      const arrow = document.getElementById(isGit ? 'project-toggle-arrow' : 'local-toggle-arrow');
       if (!wrapper) return;
       const isHidden = wrapper.classList.toggle('hidden');
       if (arrow) {
         arrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+      }
+    }
+
+    // 交互栏切换：Git 仓库与本地工作区
+    function switchProjectWorkspaceTab(tab) {
+      const btnGit = document.getElementById('project-tab-btn-git');
+      const btnLocal = document.getElementById('project-tab-btn-local');
+      const panelGit = document.getElementById('project-panel-git');
+      const panelLocal = document.getElementById('project-panel-local');
+      if (!btnGit || !btnLocal || !panelGit || !panelLocal) return;
+
+      if (tab === 'git') {
+        btnGit.className = 'py-1 px-2 rounded-lg font-medium text-center transition-all bg-claude-card text-emerald-800 shadow-2xs';
+        btnLocal.className = 'py-1 px-2 rounded-lg font-medium text-center transition-all text-claude-muted hover:text-claude-text';
+        panelGit.classList.remove('hidden');
+        panelLocal.classList.add('hidden');
+      } else {
+        btnLocal.className = 'py-1 px-2 rounded-lg font-medium text-center transition-all bg-claude-card text-slate-800 shadow-2xs';
+        btnGit.className = 'py-1 px-2 rounded-lg font-medium text-center transition-all text-claude-muted hover:text-claude-text';
+        panelLocal.classList.remove('hidden');
+        panelGit.classList.add('hidden');
+        renderLocalFilesTree();
       }
     }
 
@@ -1423,14 +1524,18 @@
 
       const paths = Array.from(state.selectedPaths);
       await Promise.all(paths.map(async (p) => {
-        if (!state.loadedFilesMap[p] || !state.loadedFilesMap[p].content) {
+        const fileObj = state.loadedFilesMap[p];
+        if (fileObj && fileObj.isLocal) {
+          return;
+        }
+        if (!fileObj || !fileObj.content) {
           try {
             const res = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${p}?ref=${state.git.branch}`, {
               headers: { 'Authorization': `Bearer ${state.git.token}` }
             });
             const d = await res.json();
             const content = decodeURIComponent(escape(atob(d.content)));
-            state.loadedFilesMap[p] = { path: p, sha: d.sha, content: content };
+            state.loadedFilesMap[p] = { path: p, sha: d.sha, content: content, isLocal: false };
           } catch (e) {
             console.error('获取文件失败:', p, e);
           }
@@ -2025,7 +2130,12 @@
         for (const filePath of Object.keys(filePatches)) {
           try {
             let fileObj = state.loadedFilesMap[filePath];
+            const isLocalFile = Boolean(fileObj && fileObj.isLocal);
+
             if (!fileObj || !fileObj.content) {
+              if (isLocalFile) {
+                throw new Error('本地文件内容为空，无法打补丁');
+              }
               const checkRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}?ref=${state.git.branch}`, {
                 headers: { 'Authorization': `Bearer ${state.git.token}` }
               });
@@ -2034,7 +2144,8 @@
               fileObj = {
                 path: filePath,
                 sha: fileData.sha,
-                content: decodeURIComponent(escape(atob(fileData.content)))
+                content: decodeURIComponent(escape(atob(fileData.content))),
+                isLocal: false
               };
               state.loadedFilesMap[filePath] = fileObj;
             }
@@ -2050,31 +2161,43 @@
               updatedContent = patched;
             }
 
-            const base64Content = btoa(unescape(encodeURIComponent(updatedContent)));
-            const putRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}`, {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${state.git.token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                message: `Patch update ${filePath} via mobile AI`,
-                content: base64Content,
-                sha: fileObj.sha,
-                branch: state.git.branch
-              })
-            });
+            if (isLocalFile) {
+              state.loadedFilesMap[filePath].content = updatedContent;
+              state.loadedFilesMap[filePath].lastUpdated = Date.now();
+              renderLocalFilesTree();
+              logDiv.innerHTML += `
+                <div class="text-blue-600 flex items-center gap-1 font-mono">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  [本地导入文件] 已更新内容: ${filePath}
+                </div>
+              `;
+            } else {
+              const base64Content = btoa(unescape(encodeURIComponent(updatedContent)));
+              const putRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${state.git.token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  message: `Patch update ${filePath} via mobile AI`,
+                  content: base64Content,
+                  sha: fileObj.sha,
+                  branch: state.git.branch
+                })
+              });
 
-            if (!putRes.ok) throw new Error('推送失败');
-            const putData = await putRes.json();
-            state.loadedFilesMap[filePath] = { path: filePath, sha: putData.content.sha, content: updatedContent };
+              if (!putRes.ok) throw new Error('Git推送失败');
+              const putData = await putRes.json();
+              state.loadedFilesMap[filePath] = { path: filePath, sha: putData.content.sha, content: updatedContent, isLocal: false };
 
-            logDiv.innerHTML += `
-              <div class="text-claude-success flex items-center gap-1 font-mono">
-                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                已精准打补丁并推送: ${filePath} (Commit: ${putData.commit.sha.substring(0,7)})
-              </div>
-            `;
+              logDiv.innerHTML += `
+                <div class="text-claude-success flex items-center gap-1 font-mono">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  已精准打补丁并推送: ${filePath} (Commit: ${putData.commit.sha.substring(0,7)})
+                </div>
+              `;
+            }
           } catch (err) {
             logDiv.innerHTML += `<div class="text-red-500 font-mono">修改失败 [${filePath}]: ${err.message}</div>`;
           }
@@ -2129,7 +2252,7 @@
           <div id="${textId}" class="leading-relaxed whitespace-pre-wrap ${isLongText ? 'max-h-24 overflow-hidden' : ''}">${escapeHtml(obj.text || '')}</div>
           ${isLongText ? `
             <div class="pt-1 flex justify-end">
-              <button id="${foldBtnId}" onclick="toggleFoldMessage('${textId}', '${foldBtnId}')" class="text-[10px] text-claude-accent font-medium">展开全部</button>
+              <button id="${foldBtnId}" onclick="toggleFoldMessage('${textId}', '${foldBtnId}', null, 'max-h-24')" class="text-[10px] text-claude-accent font-medium">展开全部</button>
             </div>
           ` : ''}
         </div>
@@ -2217,23 +2340,37 @@
         `;
       }
 
-      const isAssistantLongText = (data.cleanText || '').length > 400;
+      const isAssistantLongText = (data.cleanText || '').length > 320;
+      const hasPatches = Boolean(data.patches && data.patches.length > 0);
+      const shouldFold = isAssistantLongText || hasPatches;
       const asstTextId = `msg-asst-txt-${data.msgIndex}-${Date.now()}`;
       const asstFoldBtnId = `msg-asst-btn-${data.msgIndex}-${Date.now()}`;
+      const asstPatchWrapId = `msg-asst-patch-${data.msgIndex}-${Date.now()}`;
+
+      let patchesSectionHtml = '';
+      if (hasPatches) {
+        patchesSectionHtml = `
+          <div id="${asstPatchWrapId}" class="space-y-2 mt-2 transition-all ${shouldFold ? 'max-h-48 overflow-hidden' : ''}">
+            ${patchesHtml}
+          </div>
+        `;
+      }
 
       wrapper.innerHTML = `
         <div class="w-full bg-claude-card border border-claude-border rounded-2xl p-3.5 text-xs select-text shadow-2xs">
           ${thinkingBlock}
-          <div id="${asstTextId}" class="assistant-clean-text leading-relaxed whitespace-pre-wrap ${isAssistantLongText ? 'max-h-36 overflow-hidden' : ''}">${escapeHtml(data.cleanText)}</div>
-          ${isAssistantLongText ? `
-            <div class="pt-1.5 flex justify-end border-t border-claude-border/50 mt-1">
-              <button id="${asstFoldBtnId}" onclick="toggleFoldMessage('${asstTextId}', '${asstFoldBtnId}')" class="text-[10px] text-claude-accent font-medium">展开全部</button>
+          <div id="${asstTextId}" class="assistant-clean-text leading-relaxed whitespace-pre-wrap ${shouldFold ? 'max-h-36 overflow-hidden' : ''}">${escapeHtml(data.cleanText)}</div>
+          ${patchesSectionHtml}
+          ${shouldFold ? `
+            <div class="pt-2 flex justify-between items-center border-t border-claude-border/50 mt-2">
+              <span class="text-[10px] text-claude-muted">${hasPatches ? `包含 ${data.patches.length} 处修改前后过程` : '长文本内容'}</span>
+              <button id="${asstFoldBtnId}" onclick="toggleFoldMessage('${asstTextId}', '${asstFoldBtnId}', '${hasPatches ? asstPatchWrapId : ''}', 'max-h-36')" class="text-[11px] text-claude-accent font-semibold px-2 py-0.5 rounded hover:bg-claude-hover">展开全部</button>
             </div>
           ` : ''}
-          ${patchesHtml}
           ${tokenInfo}
         </div>
         <div class="flex items-center gap-2 pl-1">
+
           <button onclick="deleteSingleMessage(${data.msgIndex})" class="text-[10px] text-claude-muted hover:text-red-500 active:opacity-60 flex items-center gap-0.5" title="删除此条回复">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             删除
@@ -2287,16 +2424,30 @@
     }
     document.addEventListener('click', () => togglePlusMenu(false));
 
-    // 消息展开/折叠
-    function toggleFoldMessage(textId, btnId) {
+    // 消息与修改前后过程 (SEARCH/REPLACE) 同步展开与收起
+    function toggleFoldMessage(textId, btnId, patchContainerId = null, defaultMaxH = 'max-h-24') {
       const el = document.getElementById(textId);
       const btn = document.getElementById(btnId);
+      const patchEl = patchContainerId ? document.getElementById(patchContainerId) : null;
       if (!el || !btn) return;
-      if (el.classList.contains('max-h-24')) {
-        el.classList.remove('max-h-24', 'overflow-hidden');
+
+      const isFolded = el.classList.contains('overflow-hidden') || (patchEl && patchEl.classList.contains('overflow-hidden'));
+
+      if (isFolded) {
+        // 同步展开正文
+        el.classList.remove('max-h-24', 'max-h-36', 'overflow-hidden');
+        // 同步展开修改前后过程
+        if (patchEl) {
+          patchEl.classList.remove('max-h-48', 'overflow-hidden');
+        }
         btn.innerText = '收起消息';
       } else {
-        el.classList.add('max-h-24', 'overflow-hidden');
+        // 同步收起正文
+        el.classList.add(defaultMaxH, 'overflow-hidden');
+        // 同步收起修改前后过程
+        if (patchEl) {
+          patchEl.classList.add('max-h-48', 'overflow-hidden');
+        }
         btn.innerText = '展开全部';
       }
     }
@@ -2336,9 +2487,10 @@
           lastUpdated: Date.now()
         };
         state.selectedPaths.add(file.name);
+        renderLocalFilesTree();
         renderSelectedFileChips();
         updateBatchActionBar();
-        alert(`文件 [${file.name}] 已导入并载入上下文，可直接发送让 AI 修改！`);
+        alert(`文件 [${file.name}] 已导入至本地工作区并载入上下文！`);
       };
       reader.readAsText(file);
       e.target.value = '';
@@ -2470,7 +2622,6 @@
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-      closeModal('backup-modal');
     }
 
     function importDataFromJSON(e) {
@@ -2564,10 +2715,13 @@
       await storage.set('conversations', item);
       state.currentConversationId = id;
       state.messages = [];
+      state.selectedPaths.clear();
       state.totalSessionTokens = 0;
       document.getElementById('footer-token-count').innerText = '0 tok';
       document.getElementById('current-title').innerText = '新聊天';
       document.getElementById('chat-stream').innerHTML = '';
+      renderSelectedFileChips();
+      updateBatchActionBar();
       toggleDrawer(false);
       renderHistoryList();
     }
@@ -2864,10 +3018,14 @@
       }
     }
     function openModal(id) { 
-      document.getElementById(id).classList.remove('hidden'); 
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden'); 
       if (id === 'model-picker-modal') renderModelPickerList();
     }
-    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function closeModal(id) { 
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden'); 
+    }
     function getFormattedTime() {
       const d = new Date();
       return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
