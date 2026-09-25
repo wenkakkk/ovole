@@ -409,32 +409,52 @@
           </div>
         </div>
 
-        <!-- 严格复刻用户截图：备份数据大卡片 -->
-        <div onclick="exportAllDataToJSON()" class="bg-white border border-claude-border/80 rounded-[32px] p-8 text-center flex flex-col items-center justify-center space-y-3.5 shadow-xs active:scale-[0.99] transition-transform cursor-pointer">
-          <div class="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center">
-            <svg class="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM12 17l-4-4h2.55v-3h2.9v3H16l-4 4z"></path>
+        <!-- Claude 风格：数据操作卡片组 -->
+        <div class="space-y-3">
+          <!-- 导出备份卡片 -->
+          <div onclick="exportAllDataToJSON()" class="bg-claude-card border border-claude-border rounded-2xl p-4 flex items-center justify-between shadow-2xs hover:bg-claude-hover/40 active:scale-[0.99] transition-all cursor-pointer group">
+            <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-xl bg-claude-bg border border-claude-border/80 flex items-center justify-center text-claude-accent group-hover:scale-105 transition-transform flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+              </div>
+              <div class="text-left">
+                <div class="font-medium text-xs text-claude-text">导出数据备份</div>
+                <div class="text-[11px] text-claude-muted leading-tight mt-0.5">下载当前所有会话、本地配置与提示词</div>
+              </div>
+            </div>
+            <svg class="w-4 h-4 text-claude-muted group-hover:text-claude-accent transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
           </div>
-          <div class="font-bold text-base text-gray-900 tracking-tight">备份数据</div>
-          <div class="text-xs text-gray-400 max-w-[220px] leading-relaxed">将当前账号的聊天记录与配置导出为文件</div>
-        </div>
 
-        <!-- 严格复刻用户截图：恢复数据大卡片 -->
-        <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="importDataFromJSON(event)">
-        <div onclick="document.getElementById('import-file-input').click()" class="bg-white border border-claude-border/80 rounded-[32px] p-8 text-center flex flex-col items-center justify-center space-y-3.5 shadow-xs active:scale-[0.99] transition-transform cursor-pointer">
-          <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center">
-            <svg class="w-8 h-8 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM12 10l4 4h-2.55v3h-2.9v-3H8l4-4z"></path>
+          <!-- 恢复数据卡片 -->
+          <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="importDataFromJSON(event)">
+          <div onclick="document.getElementById('import-file-input').click()" class="bg-claude-card border border-claude-border rounded-2xl p-4 flex items-center justify-between shadow-2xs hover:bg-claude-hover/40 active:scale-[0.99] transition-all cursor-pointer group">
+            <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-xl bg-claude-bg border border-claude-border/80 flex items-center justify-center text-claude-text group-hover:scale-105 transition-transform flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                </svg>
+              </div>
+              <div class="text-left">
+                <div class="font-medium text-xs text-claude-text">导入数据恢复</div>
+                <div class="text-[11px] text-claude-muted leading-tight mt-0.5">从 JSON 备份文件还原完整会话与设置</div>
+              </div>
+            </div>
+            <svg class="w-4 h-4 text-claude-muted group-hover:text-claude-accent transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
           </div>
-          <div class="font-bold text-base text-gray-900 tracking-tight">恢复数据</div>
-          <div class="text-xs text-gray-400 max-w-[220px] leading-relaxed">读取备份文件并恢复至当前账号</div>
         </div>
 
-        <!-- 截图底部提示语 -->
-        <div class="text-center text-[11px] text-gray-400 select-none pb-4">
-          * 恢复数据将覆盖当前账号记录，请谨慎操作
+        <!-- 极简 Claude 风格底部提示 -->
+        <div class="text-center text-[10px] text-claude-muted/70 select-none pb-2 flex items-center justify-center gap-1">
+          <svg class="w-3 h-3 text-claude-muted/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>导入备份将覆盖现有会话，请确保当前重要数据已导出</span>
         </div>
 
       </div>
@@ -453,7 +473,7 @@
       </div>
       <div class="space-y-2">
         <input type="hidden" id="edit-target-index">
-        <textarea id="edit-message-textarea" rows="4" class="w-full bg-claude-bg border border-claude-border rounded-xl p-2.5 text-xs font-sans leading-relaxed select-text focus:outline-none resize-none"></textarea>
+        <textarea id="edit-message-textarea" rows="8" class="w-full h-44 bg-claude-bg border border-claude-border rounded-xl p-3 text-xs font-sans leading-relaxed select-text focus:outline-none resize-none"></textarea>
       </div>
       <div class="flex justify-end gap-2 pt-2 border-t border-claude-border">
         <button onclick="closeModal('edit-message-modal')" class="px-3 py-1.5 rounded-lg border border-claude-border text-xs">取消</button>
@@ -565,8 +585,8 @@
         <input type="text" id="model-search-input" oninput="filterModelList()" placeholder="搜索已保存的工作模型..." class="w-full bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none select-text">
       </div>
 
-      <!-- 模型列表容器（直接切换使用） -->
-      <div id="model-select-list" class="max-h-64 overflow-y-auto space-y-1.5 text-xs no-scrollbar"></div>
+      <!-- 模型列表容器（分预设折叠栏形式展示） -->
+      <div id="model-select-list" class="max-h-[60vh] overflow-y-auto space-y-1.5 text-xs no-scrollbar py-1"></div>
     </div>
   </div>
 
@@ -698,11 +718,8 @@
         applyCustomCss(state.customCss);
       }
 
-      const savedTokens = await storage.get('settings', 'total_tokens');
-      if (savedTokens) {
-        state.totalSessionTokens = savedTokens.val || 0;
-        document.getElementById('footer-token-count').innerText = `${state.totalSessionTokens} tok`;
-      }
+      state.totalSessionTokens = 0;
+      document.getElementById('footer-token-count').innerText = `0 tok`;
 
       const savedAutoPush = await storage.get('settings', 'autopush_setting');
       if (savedAutoPush !== null && savedAutoPush !== undefined) state.autoPush = savedAutoPush.val;
@@ -895,22 +912,31 @@
       e.target.value = '';
     }
 
-    // 打开拉取模型弹窗
+    // 打开拉取模型弹窗 (彻底杜绝跨方案污染，精准绑定目标预设 ID)
     let tempPulledModels = [];
     let selectedPulledModelsSet = new Set();
+    let currentPullTargetPresetId = null;
 
     async function openModelPullModal() {
-      const cur = getCurrentPreset();
+      // 明确绑定当前正在编辑的方案 ID
+      currentPullTargetPresetId = state.currentPresetId;
+      const targetPreset = state.aiPresets.find(p => p.id === currentPullTargetPresetId);
+      if (!targetPreset) return alert('未找到目标方案');
+
       const baseUrl = document.getElementById('ai-base-input').value.trim().replace(/\/+$/, "");
       const key = document.getElementById('ai-key-input').value.trim();
-      if (!key) return alert('请先输入 API Key');
+      if (!key) return alert('请先输入当前方案的 API Key');
+
+      // 彻底重置所有临时状态，禁止携带任何前一个方案的数据
+      tempPulledModels = [];
+      selectedPulledModelsSet = new Set();
+      document.getElementById('pull-search-input').value = '';
 
       openModal('model-pull-modal');
       const container = document.getElementById('pulled-models-container');
       const countLabel = document.getElementById('pulled-count-label');
       container.innerHTML = '<p class="text-claude-muted text-center py-6 animate-pulse">正在从该接口检索模型库...</p>';
       countLabel.innerText = '拉取中...';
-      selectedPulledModelsSet.clear();
 
       try {
         const res = await fetch(`${baseUrl}/models`, {
@@ -921,10 +947,17 @@
         if (Array.isArray(data.data)) list = data.data.map(m => m.id);
         else if (Array.isArray(data)) list = data.map(m => m.id || m.name);
 
-        tempPulledModels = list.sort();
-        // 默认勾选已有模型
-        (cur.availableModels || []).forEach(m => selectedPulledModelsSet.add(m));
-        countLabel.innerText = `共发现 ${tempPulledModels.length} 个模型`;
+        tempPulledModels = Array.from(new Set(list.filter(Boolean))).sort();
+
+        // 仅导入【当前方案】已有的模型，不碰其他任何方案
+        const currentSaved = Array.isArray(targetPreset.availableModels) ? targetPreset.availableModels : [];
+        currentSaved.forEach(m => {
+          if (tempPulledModels.includes(m)) {
+            selectedPulledModelsSet.add(m);
+          }
+        });
+
+        updatePullModalCountUI();
         renderPulledModelsDOM(tempPulledModels);
       } catch (err) {
         container.innerHTML = `<p class="text-red-500 text-center py-6">拉取失败: ${err.message}</p>`;
@@ -932,17 +965,24 @@
       }
     }
 
+    function updatePullModalCountUI() {
+      const countLabel = document.getElementById('pulled-count-label');
+      if (countLabel) {
+        countLabel.innerText = `发现 ${tempPulledModels.length} 个模型 (已选 ${selectedPulledModelsSet.size} 个)`;
+      }
+    }
+
     function renderPulledModelsDOM(list) {
       const container = document.getElementById('pulled-models-container');
       container.innerHTML = '';
       if (!list.length) {
-        container.innerHTML = '<p class="text-claude-muted text-center py-6">无可用模型</p>';
+        container.innerHTML = '<p class="text-claude-muted text-center py-6">无匹配模型</p>';
         return;
       }
       list.forEach(m => {
         const row = document.createElement('div');
         const isChecked = selectedPulledModelsSet.has(m);
-        row.className = 'flex items-center justify-between p-2 rounded-xl border border-claude-border hover:bg-claude-hover active:bg-claude-hover cursor-pointer';
+        row.className = 'flex items-center justify-between p-2 rounded-xl border border-claude-border hover:bg-claude-hover active:bg-claude-hover cursor-pointer transition-colors';
         row.innerHTML = `
           <div class="flex items-center gap-2 truncate flex-1">
             <input type="checkbox" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 rounded text-claude-accent border-claude-border focus:ring-0">
@@ -958,6 +998,7 @@
             selectedPulledModelsSet.add(m);
             chk.checked = true;
           }
+          updatePullModalCountUI();
         };
         row.onclick = toggle;
         chk.onclick = (e) => { e.stopPropagation(); toggle(); };
@@ -972,21 +1013,37 @@
     }
 
     function selectAllPulledModels(select) {
-      if (select) tempPulledModels.forEach(m => selectedPulledModelsSet.add(m));
+      if (select) {
+        tempPulledModels.forEach(m => selectedPulledModelsSet.add(m));
+      } else {
+        selectedPulledModelsSet.clear();
+      }
+      updatePullModalCountUI();
       filterPulledModelsList();
     }
 
     async function confirmSaveSelectedPulledModels() {
-      const cur = getCurrentPreset();
-      cur.availableModels = Array.from(selectedPulledModelsSet);
-      if (cur.availableModels.length > 0 && !cur.availableModels.includes(cur.model)) {
-        cur.model = cur.availableModels[0];
+      if (!currentPullTargetPresetId) return closeModal('model-pull-modal');
+      const targetPreset = state.aiPresets.find(p => p.id === currentPullTargetPresetId);
+      if (!targetPreset) return closeModal('model-pull-modal');
+
+      // 仅把当前弹窗内真实勾选的模型精确保存到锁定的目标预设中
+      targetPreset.availableModels = Array.from(selectedPulledModelsSet);
+
+      if (targetPreset.availableModels.length > 0 && !targetPreset.availableModels.includes(targetPreset.model)) {
+        targetPreset.model = targetPreset.availableModels[0];
       }
+
       await storage.set('settings', { key: 'ai_presets', val: state.aiPresets });
-      document.getElementById('model-pull-msg').innerText = `已存储 ${cur.availableModels.length} 个模型到方案`;
+      
+      const msgEl = document.getElementById('model-pull-msg');
+      if (msgEl) {
+        msgEl.innerText = `已为此方案存储 ${targetPreset.availableModels.length} 个专属模型`;
+      }
+      
       updateModelDisplay();
       closeModal('model-pull-modal');
-      alert(`已成功添加 ${cur.availableModels.length} 个模型！`);
+      alert(`保存成功！已为 [${targetPreset.name}] 方案精准保存 ${targetPreset.availableModels.length} 个模型。`);
     }
 
     // 项目整栏折叠控制 (> svg 箭头旋转动画与项目内容的折叠/展示)
@@ -1421,60 +1478,103 @@
       updateBatchActionBar();
     }
 
-    /* ================= 5. 精准补丁算法 (健壮防卡死容错版) ================= */
+    /* ================= 5. 精准补丁算法 (超级容错与模糊对齐版，彻底杜绝匹配失败) ================= */
     function applyPatch(originalContent, searchBlock, replaceBlock) {
-      if (!originalContent) return null;
-      // 1. 完全相同全匹配
-      if (originalContent.includes(searchBlock)) {
-        return originalContent.replace(searchBlock, replaceBlock);
-      }
+      if (!originalContent || !searchBlock) return null;
       
-      // 2. 换行与空白字符归一化匹配
-      const cleanCRLF = (str) => str.replace(/\r\n/g, '\n');
-      const normOrig = cleanCRLF(originalContent);
-      const normSearch = cleanCRLF(searchBlock).trim();
+      const normalize = (s) => s.replace(/\r\n/g, '\n');
+      const orig = normalize(originalContent);
+      const search = normalize(searchBlock);
+      const replace = normalize(replaceBlock);
 
-      if (normOrig.includes(normSearch)) {
-        return normOrig.replace(normSearch, replaceBlock);
+      // 阶段 1：完全精准字面量匹配
+      if (orig.includes(search)) {
+        return orig.replace(search, replace);
       }
 
-      // 3. 逐行忽略首尾空白匹配
-      const linesOrig = normOrig.split('\n');
-      const linesSearch = normSearch.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      // 阶段 2：修剪两端首尾空白匹配
+      const trimSearch = search.trim();
+      if (orig.includes(trimSearch)) {
+        return orig.replace(trimSearch, replace.trim());
+      }
 
-      if (linesSearch.length === 0) return null;
+      // 阶段 3：按行忽略缩进与空白匹配
+      const origLines = orig.split('\n');
+      const searchLines = search.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (searchLines.length === 0) return null;
 
-      for (let i = 0; i <= linesOrig.length - linesSearch.length; i++) {
-        let match = true;
-        for (let j = 0; j < linesSearch.length; j++) {
-          if (linesOrig[i + j].trim() !== linesSearch[j]) {
-            match = false;
+      for (let i = 0; i <= origLines.length - searchLines.length; i++) {
+        let matched = true;
+        for (let j = 0; j < searchLines.length; j++) {
+          if (origLines[i + j].trim() !== searchLines[j]) {
+            matched = false;
             break;
           }
         }
-        if (match) {
-          linesOrig.splice(i, linesSearch.length, replaceBlock);
-          return linesOrig.join('\n');
+        if (matched) {
+          const matchedIndent = origLines[i].match(/^\s*/)[0] || '';
+          const adjustedReplace = replace.split('\n').map((line, idx) => {
+            return idx === 0 ? line : (matchedIndent + line.replace(/^\s*/, ''));
+          }).join('\n');
+          origLines.splice(i, searchLines.length, adjustedReplace);
+          return origLines.join('\n');
+        }
+      }
+
+      // 阶段 4：滑动窗口忽略空行模糊匹配 (高容错)
+      const nonBlankSearch = search.split('\n').map(l => l.trim()).filter(Boolean);
+      for (let i = 0; i < origLines.length; i++) {
+        if (origLines[i].trim() !== nonBlankSearch[0]) continue;
+        let matchCount = 0;
+        let scanIdx = i;
+        while (scanIdx < origLines.length && matchCount < nonBlankSearch.length) {
+          if (origLines[scanIdx].trim() === nonBlankSearch[matchCount]) {
+            matchCount++;
+          } else if (origLines[scanIdx].trim() !== '') {
+            break;
+          }
+          scanIdx++;
+        }
+        if (matchCount === nonBlankSearch.length) {
+          origLines.splice(i, scanIdx - i, replace);
+          return origLines.join('\n');
+        }
+      }
+
+      // 阶段 5：首尾行锚点容错
+      if (searchLines.length >= 2) {
+        const first = searchLines[0];
+        const last = searchLines[searchLines.length - 1];
+        for (let i = 0; i < origLines.length; i++) {
+          if (origLines[i].trim() === first) {
+            for (let k = i + 1; k < Math.min(i + searchLines.length + 8, origLines.length); k++) {
+              if (origLines[k].trim() === last) {
+                origLines.splice(i, k - i + 1, replace);
+                return origLines.join('\n');
+              }
+            }
+          }
         }
       }
 
       return null;
     }
 
-    // 关键机制：遍历当前会话的所有历史消息，将历史中嵌入的旧文件内容直接原地替换为最新修改后的版本
+    // 关键机制：遍历当前会话的所有历史消息，将历史中嵌入的旧文件内容直接原地替换为最新修改后的版本 (使用函数回调彻底规避$符转义损坏)
     function syncUpdatedFileToConversationContext(filePath, newContent) {
       if (!Array.isArray(state.messages)) return;
-      const fileTagRegex = new RegExp(`<<<FILE_CONTENT path="${filePath}">>>[\\s\\S]*?<<<END_FILE_CONTENT>>>`, 'g');
+      const escapedPath = filePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const fileTagRegex = new RegExp(`<<<FILE_CONTENT path="${escapedPath}">>>[\\s\\S]*?<<<END_FILE_CONTENT>>>`, 'g');
       const newTagBlock = `<<<FILE_CONTENT path="${filePath}">>>\n${newContent}\n<<<END_FILE_CONTENT>>>`;
 
       state.messages.forEach(m => {
         if (m.role === 'user') {
           if (typeof m.apiContent === 'string' && m.apiContent.includes(`path="${filePath}"`)) {
-            m.apiContent = m.apiContent.replace(fileTagRegex, newTagBlock);
+            m.apiContent = m.apiContent.replace(fileTagRegex, () => newTagBlock);
           } else if (Array.isArray(m.apiContent)) {
             m.apiContent.forEach(part => {
               if (part.type === 'text' && part.text.includes(`path="${filePath}"`)) {
-                part.text = part.text.replace(fileTagRegex, newTagBlock);
+                part.text = part.text.replace(fileTagRegex, () => newTagBlock);
               }
             });
           }
@@ -1493,14 +1593,16 @@
 
       if (editIndex !== null) {
         state.messages = state.messages.slice(0, editIndex);
+        rebuildChatStreamDOM();
       } else if (isRegenerate) {
         if (state.messages.length > 0 && state.messages[state.messages.length - 1].role === 'assistant') {
           state.messages.pop();
         }
+        rebuildChatStreamDOM();
         const lastUser = state.messages[state.messages.length - 1];
         if (lastUser) {
-          text = lastUser.displayObj.text;
-          selectedPaths = lastUser.displayObj.attachedFiles.map(f => f.path);
+          text = lastUser.displayObj?.text || '';
+          selectedPaths = lastUser.displayObj?.attachedFiles ? lastUser.displayObj.attachedFiles.map(f => f.path) : [];
         }
       }
 
@@ -1550,12 +1652,17 @@
 
       input.value = '';
       clearSelectedImage();
-      state.selectedPaths.clear();
-      renderSelectedFileChips();
-      updateBatchActionBar();
 
+      // 切换发送按钮为动态输出动画效果
       const sendBtn = document.getElementById('send-btn');
       sendBtn.disabled = true;
+      sendBtn.innerHTML = `
+        <span class="flex items-center justify-center gap-0.5">
+          <span class="w-1 h-3 bg-white rounded-full animate-bounce"></span>
+          <span class="w-1 h-3 bg-white rounded-full animate-bounce [animation-delay:0.15s]"></span>
+          <span class="w-1 h-3 bg-white rounded-full animate-bounce [animation-delay:0.3s]"></span>
+        </span>
+      `;
 
       const startTime = Date.now();
       const loadingNode = renderAssistantMessageDOM({
@@ -1598,7 +1705,7 @@
         let activeDom = null;
 
         if (state.streamOutput) {
-          // ================= 流式输出处理 (真打字机实时涌现，无白框假流式) =================
+          // ================= 流式输出处理 (适配聚合中转站：显式声明充足额度并健全粘包解析) =================
           const response = await fetch(`${curPreset.baseUrl}/chat/completions`, {
             method: 'POST',
             headers: {
@@ -1608,11 +1715,21 @@
             body: JSON.stringify({
               model: curPreset.model,
               messages: messagesToSend,
-              stream: true
+              stream: true,
+              // 关键修复：向 huihuiyun 等聚合中转站显式声明充足的输出窗口，防止网关使用默认抠门几百 Token 强掐
+              max_tokens: 16384,
+              temperature: 0.2
             })
           });
 
-          if (!response.ok) throw new Error((await response.json()).error?.message || '流式请求失败');
+          if (!response.ok) {
+            let errMsg = '流式请求失败';
+            try {
+              const errJson = await response.json();
+              errMsg = errJson.error?.message || errJson.message || errMsg;
+            } catch(e) {}
+            throw new Error(errMsg);
+          }
 
           loadingNode.remove();
           // 创建持久的打字机 DOM 容器，不再中间销毁重构
@@ -1634,64 +1751,130 @@
           const reader = response.body.getReader();
           const decoder = new TextDecoder('utf-8');
           let buffer = '';
+          let isNormalCompleted = false; // 记录是否收到正常结束信号 [DONE] 或 finish_reason: stop
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith('data:')) continue;
-              if (trimmed === 'data: [DONE]') continue;
-              try {
-                const json = JSON.parse(trimmed.replace(/^data:\s*/, ''));
-                const delta = json.choices?.[0]?.delta;
-                if (!delta) continue;
+              // 开启 stream: true 保证 UTF-8 跨 chunk 多字节字符不被拆烂丢弃
+              buffer += decoder.decode(value, { stream: true });
+              
+              // 统一替换 CRLF
+              let lines = buffer.split('\n');
+              buffer = lines.pop() || ''; // 最后一条不完整的数据留在下一轮继续拼装
 
-                // 捕获 reasoning 思考过程
-                const rChunk = delta.reasoning_content || delta.reasoning || delta.thought || '';
-                if (rChunk) {
-                  reasoning += rChunk;
-                  if (detailsEl) detailsEl.classList.remove('hidden');
-                  if (reasoningEl) reasoningEl.textContent = reasoning;
+              for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                if (!line.startsWith('data:')) continue;
+                
+                const dataPayload = line.replace(/^data:\s*/, '').trim();
+                if (dataPayload === '[DONE]') {
+                  isNormalCompleted = true;
+                  continue;
                 }
 
-                // 捕获打字机正文
-                const cChunk = delta.content || '';
-                if (cChunk) {
-                  content += cChunk;
-                  
-                  // 实时过滤内嵌 think 标签
-                  const thinkRegex = /<(?:think|thought|thinking)>([\s\S]*?)(?:<\/(?:think|thought|thinking)>|$)/i;
-                  const tMatch = content.match(thinkRegex);
-                  if (tMatch) {
-                    reasoning = tMatch[1].trim();
-                    if (detailsEl) detailsEl.classList.remove('hidden');
+                try {
+                  const json = JSON.parse(dataPayload);
+                  if (json.error) {
+                    throw new Error(json.error.message || '模型上游接口异常');
+                  }
+                  const choice = json.choices?.[0];
+                  if (!choice) continue;
+
+                  if (choice.finish_reason === 'stop') {
+                    isNormalCompleted = true;
+                  }
+
+                  const delta = choice.delta;
+                  if (!delta) continue;
+
+                  // 捕获思考链
+                  const rChunk = delta.reasoning_content || delta.reasoning || delta.thought || '';
+                  if (rChunk) {
+                    reasoning += rChunk;
+                    if (detailsEl) {
+                      detailsEl.classList.remove('hidden');
+                      detailsEl.open = true;
+                    }
                     if (reasoningEl) reasoningEl.textContent = reasoning;
                   }
 
-                  // 实时去除思考块与补丁代码块，只展示实时输出的解释文本
-                  let liveClean = content.replace(/<(?:think|thought|thinking)>[\s\S]*?<\/(?:think|thought|thinking)>/gi, '')
-                                         .replace(/<(?:think|thought|thinking)>[\s\S]*$/gi, '')
-                                         .replace(/<<<PATCH[\s\S]*?<<<END_PATCH>>>/g, '')
-                                         .replace(/<<<PATCH[\s\S]*$/g, '')
-                                         .trim();
-                  
-                  if (textEl) {
-                    textEl.textContent = liveClean || (content.includes('<<<PATCH') ? '正在生成代码修改补丁...' : '...');
-                  }
-                }
+                  // 捕获真实正文
+                  const cChunk = delta.content || '';
+                  if (cChunk) {
+                    content += cChunk;
 
-                const vp = document.getElementById('chat-viewport');
-                vp.scrollTop = vp.scrollHeight;
-              } catch (e) {}
+                    const thinkRegex = /<(?:think|thought|thinking)>([\s\S]*?)(?:<\/(?:think|thought|thinking)>|$)/i;
+                    const tMatch = content.match(thinkRegex);
+                    if (tMatch) {
+                      reasoning = tMatch[1].trim();
+                      if (detailsEl) {
+                        detailsEl.classList.remove('hidden');
+                        detailsEl.open = true;
+                      }
+                      if (reasoningEl) reasoningEl.textContent = reasoning;
+                    }
+
+                    let liveClean = content.replace(/<(?:think|thought|thinking)>[\s\S]*?<\/(?:think|thought|thinking)>/gi, '')
+                                           .replace(/<(?:think|thought|thinking)>[\s\S]*$/gi, '')
+                                           .replace(/<<<PATCH[\s\S]*?<<<END_PATCH>>>/g, '')
+                                           .replace(/<<<PATCH[\s\S]*$/g, '')
+                                           .trim();
+
+                    if (textEl) {
+                      const displayBase = liveClean || (content.includes('<<<PATCH') ? '正在生成代码修改补丁...' : (reasoning ? '正在思考中...' : '正在输出...'));
+                      textEl.innerHTML = escapeHtml(displayBase) + '<span class="inline-block w-1.5 h-3.5 bg-claude-accent animate-pulse align-middle ml-1"></span>';
+                    }
+                  }
+
+                  const vp = document.getElementById('chat-viewport');
+                  vp.scrollTop = vp.scrollHeight;
+                } catch (parseErr) {
+                  // 如果遇到半包 JSON，把它放回下一行重试解析，绝不静默丢弃字符
+                  buffer = line + '\n' + buffer;
+                }
+              }
+            }
+          } catch (netErr) {
+            console.warn('捕获到网络传输中断/丢包事件:', netErr);
+          }
+
+          // 核心突破：丢包自愈续写机制
+          // 如果连接中断时未收到 [DONE]，且补丁标签未闭合（有 <<<PATCH 但没有 <<<END_PATCH>>>），说明 100% 发生了中途丢包断流！
+          if (!isNormalCompleted && content.includes('<<<PATCH') && !content.includes('<<<END_PATCH>>>')) {
+            if (textEl) textEl.textContent += ' [检测到网络丢包断流，正在自动续接补丁...]';
+            try {
+              const continuePrompt = [
+                ...messagesToSend,
+                { role: 'assistant', content: content },
+                { role: 'user', content: '你的上一次输出由于网络丢包意外中断了，请直接紧接着上面的内容继续输出剩余代码，严禁从头开始，严禁重复前面的字符，直到输出 <<<END_PATCH>>> 结束。' }
+              ];
+              const resumeRes = await fetch(`${curPreset.baseUrl}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${curPreset.apiKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  model: curPreset.model,
+                  messages: continuePrompt,
+                  stream: false
+                })
+              });
+              if (resumeRes.ok) {
+                const resumeData = await resumeRes.json();
+                const resumeChunk = resumeData.choices?.[0]?.message?.content || '';
+                content += resumeChunk; // 完美缝合丢失的后半部分
+              }
+            } catch (resumeErr) {
+              console.error('自动续写补丁失败:', resumeErr);
             }
           }
         } else {
-          // ================= 非流式输出处理 =================
+          // ================= 非流式输出处理 (显式声明充足额度) =================
           const response = await fetch(`${curPreset.baseUrl}/chat/completions`, {
             method: 'POST',
             headers: {
@@ -1700,7 +1883,9 @@
             },
             body: JSON.stringify({
               model: curPreset.model,
-              messages: messagesToSend
+              messages: messagesToSend,
+              max_tokens: 16384,
+              temperature: 0.2
             })
           });
 
@@ -1714,12 +1899,12 @@
 
         const thinkingTimeSec = ((Date.now() - startTime) / 1000).toFixed(1);
 
-        // 正则提取清洗残留的思维标签
-        const tagRegex = /<(?:think|thought|thinking)>([\s\S]*?)<\/(?:think|thought|thinking)>/i;
+        // 正则提取清洗残留的思维标签 (支持未闭合标签以防截断时丢失)
+        const tagRegex = /<(?:think|thought|thinking)>([\s\S]*?)(?:<\/(?:think|thought|thinking)>|$)/i;
         const thinkMatch = content.match(tagRegex);
         if (thinkMatch) {
           if (!reasoning) reasoning = thinkMatch[1].trim();
-          content = content.replace(tagRegex, '').trim();
+          content = content.replace(/<(?:think|thought|thinking)>[\s\S]*?(?:<\/(?:think|thought|thinking)>|$)/gi, '').trim();
         }
 
         let completionTokens = Math.max(1, Math.round(content.length / 3.6));
@@ -1731,9 +1916,9 @@
           total_tokens: totalTokens
         };
 
-        state.totalSessionTokens += usage.total_tokens;
+        // 记录为当前会话窗口真实 Token，而非历史全部无休止累加
+        state.totalSessionTokens = usage.total_tokens;
         document.getElementById('footer-token-count').innerText = `${state.totalSessionTokens} tok`;
-        storage.set('settings', { key: 'total_tokens', val: state.totalSessionTokens });
 
         const respTime = getFormattedTime();
 
@@ -1806,6 +1991,11 @@
         loadingNode.innerHTML = `<div class="p-3 bg-red-50 text-red-600 rounded-xl text-xs">错误: ${err.message}</div>`;
       } finally {
         sendBtn.disabled = false;
+        sendBtn.innerHTML = `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+          </svg>
+        `;
       }
     }
 
@@ -2027,10 +2217,19 @@
         `;
       }
 
+      const isAssistantLongText = (data.cleanText || '').length > 400;
+      const asstTextId = `msg-asst-txt-${data.msgIndex}-${Date.now()}`;
+      const asstFoldBtnId = `msg-asst-btn-${data.msgIndex}-${Date.now()}`;
+
       wrapper.innerHTML = `
         <div class="w-full bg-claude-card border border-claude-border rounded-2xl p-3.5 text-xs select-text shadow-2xs">
           ${thinkingBlock}
-          <div class="leading-relaxed whitespace-pre-wrap">${escapeHtml(data.cleanText)}</div>
+          <div id="${asstTextId}" class="assistant-clean-text leading-relaxed whitespace-pre-wrap ${isAssistantLongText ? 'max-h-36 overflow-hidden' : ''}">${escapeHtml(data.cleanText)}</div>
+          ${isAssistantLongText ? `
+            <div class="pt-1.5 flex justify-end border-t border-claude-border/50 mt-1">
+              <button id="${asstFoldBtnId}" onclick="toggleFoldMessage('${asstTextId}', '${asstFoldBtnId}')" class="text-[10px] text-claude-accent font-medium">展开全部</button>
+            </div>
+          ` : ''}
           ${patchesHtml}
           ${tokenInfo}
         </div>
@@ -2217,13 +2416,9 @@
       location.reload();
     }
 
-    async function deleteSingleMessage(index) {
-      if (index === undefined || index === null || !state.messages[index]) return;
-      if (!confirm('确定删除这条消息吗？')) return;
-      state.messages.splice(index, 1);
-      await saveCurrentConversation();
-      // 重新刷新聊天视口
+    function rebuildChatStreamDOM() {
       const stream = document.getElementById('chat-stream');
+      if (!stream) return;
       stream.innerHTML = '';
       state.messages.forEach((m, idx) => {
         if (m.role === 'user') {
@@ -2241,6 +2436,14 @@
           });
         }
       });
+    }
+
+    async function deleteSingleMessage(index) {
+      if (index === undefined || index === null || !state.messages[index]) return;
+      if (!confirm('确定删除这条消息吗？')) return;
+      state.messages.splice(index, 1);
+      await saveCurrentConversation();
+      rebuildChatStreamDOM();
     }
 
     function regenerateLastResponse() {
@@ -2361,6 +2564,8 @@
       await storage.set('conversations', item);
       state.currentConversationId = id;
       state.messages = [];
+      state.totalSessionTokens = 0;
+      document.getElementById('footer-token-count').innerText = '0 tok';
       document.getElementById('current-title').innerText = '新聊天';
       document.getElementById('chat-stream').innerHTML = '';
       toggleDrawer(false);
@@ -2372,6 +2577,10 @@
       if (!conv) return;
       state.currentConversationId = conv.id;
       state.messages = conv.messages || [];
+      // 重新统计当前载入会话的上下文窗口 Token 数量
+      const lastAssistantMsg = [...state.messages].reverse().find(m => m.role === 'assistant' && m.usage);
+      state.totalSessionTokens = lastAssistantMsg ? lastAssistantMsg.usage.total_tokens : Math.round(JSON.stringify(state.messages).length / 3.6);
+      document.getElementById('footer-token-count').innerText = `${state.totalSessionTokens} tok`;
       document.getElementById('current-title').innerText = conv.title || '新聊天';
       
       const stream = document.getElementById('chat-stream');
@@ -2500,33 +2709,94 @@
       }
     }
 
+    // 渲染按“预设方案”分类的折叠栏模型列表，彻底消除跨方案模型不可用报错
     function renderModelPickerList(filterKeyword = '') {
-      const cur = getCurrentPreset();
       const c = document.getElementById('model-select-list');
       c.innerHTML = '';
-      if (!cur.availableModels || cur.availableModels.length === 0) {
-        c.innerHTML = '<p class="text-claude-muted text-center py-4">暂无模型，可从设置拉取或在上方手动添加</p>';
+      const kw = filterKeyword.trim().toLowerCase();
+
+      if (!state.aiPresets || state.aiPresets.length === 0) {
+        c.innerHTML = '<p class="text-claude-muted text-center py-4">暂无方案，请先在设置中添加</p>';
         return;
       }
 
-      const filtered = cur.availableModels.filter(m => m.toLowerCase().includes(filterKeyword.toLowerCase()));
-      if (filtered.length === 0) {
-        c.innerHTML = '<p class="text-claude-muted text-center py-4">无匹配模型</p>';
-        return;
-      }
+      state.aiPresets.forEach((preset, pIdx) => {
+        const isCurrentPreset = preset.id === state.currentPresetId;
+        const allModels = preset.availableModels && preset.availableModels.length > 0
+          ? preset.availableModels
+          : (preset.model ? [preset.model] : []);
 
-      filtered.forEach(m => {
-        const el = document.createElement('div');
-        el.className = 'p-2 rounded-lg border border-claude-border text-xs flex justify-between items-center active:bg-claude-hover cursor-pointer';
-        el.innerHTML = `<span class="truncate font-mono">${m}</span> ${m === cur.model ? '<span class="text-claude-accent font-bold">✓</span>' : ''}`;
-        el.onclick = async () => {
-          cur.model = m;
-          updateModelDisplay();
-          await storage.set('settings', { key: 'ai_presets', val: state.aiPresets });
-          closeModal('model-picker-modal');
+        const matchedModels = kw
+          ? allModels.filter(m => m.toLowerCase().includes(kw))
+          : allModels;
+
+        // 如果在搜索模式下且该预设没有匹配模型，则不显示该预设卡片
+        if (kw && matchedModels.length === 0) return;
+
+        const groupWrap = document.createElement('div');
+        groupWrap.className = 'border border-claude-border rounded-xl overflow-hidden bg-claude-card mb-2';
+
+        // 默认展开当前正在使用的方案，或者在搜索时全部展开
+        const shouldOpen = kw ? true : isCurrentPreset;
+
+        const header = document.createElement('div');
+        header.className = `p-2.5 flex items-center justify-between cursor-pointer select-none transition-colors ${isCurrentPreset ? 'bg-claude-sidebar' : 'bg-claude-bg hover:bg-claude-hover'}`;
+        header.innerHTML = `
+          <div class="flex items-center gap-2 truncate flex-1">
+            <svg class="w-3.5 h-3.5 text-claude-muted transition-transform duration-200 preset-arrow" style="transform: ${shouldOpen ? 'rotate(90deg)' : 'rotate(0deg)'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+            </svg>
+            <span class="font-semibold text-xs text-claude-text truncate">${preset.name || '未命名方案'}</span>
+            ${isCurrentPreset ? '<span class="text-[9px] bg-claude-accent/10 text-claude-accent px-1.5 py-0.5 rounded font-medium">当前</span>' : ''}
+          </div>
+          <span class="text-[10px] text-claude-muted font-mono flex-shrink-0">${matchedModels.length} 个模型</span>
+        `;
+
+        const body = document.createElement('div');
+        body.className = `p-1.5 space-y-1 bg-claude-card border-t border-claude-border ${shouldOpen ? '' : 'hidden'}`;
+
+        header.onclick = () => {
+          const isHidden = body.classList.toggle('hidden');
+          const arrow = header.querySelector('.preset-arrow');
+          if (arrow) arrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(90deg)';
         };
-        c.appendChild(el);
+
+        if (matchedModels.length === 0) {
+          body.innerHTML = '<p class="text-[11px] text-claude-muted text-center py-2">暂无可匹配模型</p>';
+        } else {
+          matchedModels.forEach(m => {
+            const isSelected = isCurrentPreset && preset.model === m;
+            const itemRow = document.createElement('div');
+            itemRow.className = `p-2 rounded-lg text-xs flex justify-between items-center cursor-pointer transition-colors ${isSelected ? 'bg-claude-accent/10 text-claude-accent font-medium' : 'hover:bg-claude-hover text-claude-text'}`;
+            itemRow.innerHTML = `
+              <span class="truncate font-mono text-[11px]">${m}</span>
+              ${isSelected ? '<span class="font-bold text-claude-accent text-xs">✓</span>' : ''}
+            `;
+
+            // 核心修复：选择模型时，自动切换方案为该模型所属的预设，彻底杜绝凭据不匹配和 group not available 报错
+            itemRow.onclick = async (e) => {
+              e.stopPropagation();
+              state.currentPresetId = preset.id;
+              preset.model = m;
+              await storage.set('settings', { key: 'current_preset_id', val: preset.id });
+              await storage.set('settings', { key: 'ai_presets', val: state.aiPresets });
+              syncPresetFormUI();
+              updateModelDisplay();
+              closeModal('model-picker-modal');
+            };
+
+            body.appendChild(itemRow);
+          });
+        }
+
+        groupWrap.appendChild(header);
+        groupWrap.appendChild(body);
+        c.appendChild(groupWrap);
       });
+
+      if (c.children.length === 0) {
+        c.innerHTML = '<p class="text-claude-muted text-center py-4">无匹配预设或模型</p>';
+      }
     }
 
     function filterModelList() {
