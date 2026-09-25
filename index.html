@@ -463,7 +463,7 @@
         <!-- Claude 风格：数据操作卡片组 -->
         <div class="space-y-3">
           <!-- 导出备份卡片 -->
-          <div onclick="exportAllDataToJSON()" class="bg-claude-card border border-claude-border rounded-2xl p-4 flex items-center justify-between shadow-2xs hover:bg-claude-hover/40 active:scale-[0.99] transition-all cursor-pointer group">
+          <div onclick="openExportBackupModal()" class="bg-claude-card border border-claude-border rounded-2xl p-4 flex items-center justify-between shadow-2xs hover:bg-claude-hover/40 active:scale-[0.99] transition-all cursor-pointer group">
             <div class="flex items-center gap-3.5">
               <div class="w-10 h-10 rounded-xl bg-claude-bg border border-claude-border/80 flex items-center justify-center text-claude-accent group-hover:scale-105 transition-transform flex-shrink-0">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -532,6 +532,46 @@
     </div>
   </div>
 
+
+  <!-- ================= 弹窗：Claude 风格 备份文件命名 ================= -->
+  <div id="backup-name-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-claude-card w-full max-w-xs rounded-2xl border border-claude-border shadow-xl p-4 space-y-3">
+      <div class="flex justify-between items-center border-b border-claude-border pb-2">
+        <span class="font-semibold text-sm text-claude-text">导出备份文件</span>
+        <button onclick="closeModal('backup-name-modal')" class="p-1 text-claude-muted hover:text-claude-text">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="space-y-1.5 text-xs">
+        <label class="block text-claude-muted font-medium">备份文件名称 (.json)</label>
+        <input type="text" id="backup-filename-input" placeholder="输入备份名称" class="w-full bg-claude-bg border border-claude-border rounded-xl p-2.5 text-xs focus:outline-none select-text">
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-claude-border">
+        <button onclick="closeModal('backup-name-modal')" class="px-3 py-1.5 rounded-lg border border-claude-border text-xs text-claude-muted">取消</button>
+        <button onclick="confirmExportBackupWithCustomName()" class="px-3 py-1.5 rounded-lg bg-claude-accent text-white text-xs font-medium active:bg-claude-accentHover">确认导出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 弹窗：Claude 风格 另存配置方案预设 ================= -->
+  <div id="preset-save-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-claude-card w-full max-w-xs rounded-2xl border border-claude-border shadow-xl p-4 space-y-3">
+      <div class="flex justify-between items-center border-b border-claude-border pb-2">
+        <span class="font-semibold text-sm text-claude-text">另存为新方案</span>
+        <button onclick="closeModal('preset-save-modal')" class="p-1 text-claude-muted hover:text-claude-text">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="space-y-1.5 text-xs">
+        <label class="block text-claude-muted font-medium">方案预设名称</label>
+        <input type="text" id="new-preset-name-input" placeholder="例如: 中转方案2 / Claude3.7专属" class="w-full bg-claude-bg border border-claude-border rounded-xl p-2.5 text-xs focus:outline-none select-text">
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-claude-border">
+        <button onclick="closeModal('preset-save-modal')" class="px-3 py-1.5 rounded-lg border border-claude-border text-xs text-claude-muted">取消</button>
+        <button onclick="confirmSaveNewPresetFromModal()" class="px-3 py-1.5 rounded-lg bg-claude-accent text-white text-xs font-medium active:bg-claude-accentHover">保存预设</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ================= 弹窗：编辑消息 ================= -->
   <div id="edit-message-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
@@ -1315,9 +1355,17 @@
       if (aiModal) closeModal('ai-modal');
     }
 
-    async function saveAsNewPreset() {
-      const name = prompt('请输入新预设的名称:', '新配置方案');
-      if (!name) return;
+    function saveAsNewPreset() {
+      const input = document.getElementById('new-preset-name-input');
+      if (input) input.value = `新方案_${getFormattedTime().replace(/:/g, '')}`;
+      openModal('preset-save-modal');
+    }
+
+    async function confirmSaveNewPresetFromModal() {
+      const input = document.getElementById('new-preset-name-input');
+      const name = input ? input.value.trim() : '';
+      if (!name) return alert('请输入方案名称');
+
       const newPreset = {
         id: 'preset_' + Date.now(),
         name: name,
@@ -1333,6 +1381,7 @@
       renderPresetOptions();
       syncPresetFormUI();
       updateModelDisplay();
+      closeModal('preset-save-modal');
     }
 
     async function deleteCurrentPreset() {
@@ -2603,25 +2652,55 @@
     }
 
     /* ================= 10. 数据备份、导出与恢复 ================= */
-    async function exportAllDataToJSON() {
-      const allConvs = await storage.getAll('conversations');
-      const backupData = {
-        version: 3,
-        exportTime: new Date().toISOString(),
-        git: state.git,
-        aiPresets: state.aiPresets,
-        currentPresetId: state.currentPresetId,
-        autoPush: state.autoPush,
-        conversations: allConvs
-      };
+    function openExportBackupModal() {
+      const input = document.getElementById('backup-filename-input');
+      if (input) {
+        const d = new Date();
+        const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${getFormattedTime().replace(/:/g, '')}`;
+        input.value = `SpringCode_Backup_${dateStr}`;
+      }
+      openModal('backup-name-modal');
+    }
 
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `ClaudeStudio_Backup_${getFormattedTime().replace(/:/g, '')}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
+    async function confirmExportBackupWithCustomName() {
+      const input = document.getElementById('backup-filename-input');
+      let customName = input ? input.value.trim() : '';
+      if (!customName) customName = `SpringCode_Backup_${getFormattedTime().replace(/:/g, '')}`;
+      if (!customName.toLowerCase().endsWith('.json')) customName += '.json';
+
+      closeModal('backup-name-modal');
+
+      try {
+        const allConvs = await storage.getAll('conversations');
+        const backupData = {
+          version: 3,
+          exportTime: new Date().toISOString(),
+          git: state.git,
+          aiPresets: state.aiPresets,
+          currentPresetId: state.currentPresetId,
+          autoPush: state.autoPush,
+          customPrompt: state.customPrompt,
+          customCss: state.customCss,
+          conversations: allConvs
+        };
+
+        const jsonBlob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(jsonBlob);
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.style.display = 'none';
+        downloadAnchor.href = blobUrl;
+        downloadAnchor.download = customName;
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(downloadAnchor);
+          URL.revokeObjectURL(blobUrl);
+        }, 1500);
+
+      } catch (err) {
+        alert('导出备份失败: ' + err.message);
+      }
     }
 
     function importDataFromJSON(e) {
