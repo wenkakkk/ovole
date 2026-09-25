@@ -810,18 +810,23 @@
     const DEFAULT_SYSTEM_PROMPT = `你是一个顶级智能助手，精通全栈工程开发，也擅长解答各类日常问题与进行自由深度交谈。
 【行为规范】：
 1. 正常闲聊、解答疑问、技术咨询时：用清晰生动的方式直接回答，畅所欲言。
-2. 涉及代码修改诉求时：只输出局部修改，严禁输出完整大文件！必须严格按照以下格式输出局部替换块：
-<<<PATCH path="目标文件相对路径">>>
+2. 涉及代码修改诉求时：只输出局部修改，严禁输出完整大文件！格式如下：
+<<<PATCH path="目标文件相对路径" occurrence="last">>>
 <<<<<<< SEARCH
 原文件中需要被替换的一小段精确代码
 =======
 修改后的新代码
 >>>>>>> REPLACE
 <<<END_PATCH>>>
+【如何自主选择修改哪一处重复代码】：
+- 默认情况下 occurrence="last"（修改文件中最后出现的那处最新代码）。
+- 若需要修改文件前半部分出现的第1处重复代码，请明确指定：occurrence="1"。
+- 若需要修改第2处重复代码，请指定：occurrence="2"。
+- 若文件中所有重复出现的该片段全部需要统一修改，请指定：occurrence="all"。
 3. SEARCH搜索块核心铁律（违反将导致程序崩溃）：
-- 【严禁 SEARCH 块为空】：无论任何修改（包括删除、插入、重构），<<<<<<< SEARCH 块中必须至少包含 3 至 5 行文件中现有的真实原代码，严禁留空！
+- 【严禁 SEARCH 块为空或仅有标点】：严禁留空，严禁只输出类似 "/*" 或 "{" 的单薄符号！必须包含完整的选择器名称及前后至少 3 行真实上下文！
 - 绝对禁止凭借记忆抄写之前的旧代码！当前提问末尾带有的 <<<FILE_CONTENT>>> 才是当前文件的唯一最新内容！
-- SEARCH 块必须一字不差、逐字逐行从最新 <<<FILE_CONTENT>>> 中直接复制，严禁臆造，严禁修改任何标点和空格！`;
+- SEARCH 块必须一字不差、逐字逐行从最新 <<<FILE_CONTENT>>> 中直接复制！`;
 
     const state = {
       git: { token: '', repo: '', branch: 'main' },
@@ -1808,48 +1813,81 @@
       updateBatchActionBar();
     }
 
-    /* ================= 5. 精准补丁算法 (超级容错与模糊对齐版，彻底杜绝匹配失败) ================= */
-    function applyPatch(originalContent, searchBlock, replaceBlock) {
-      if (!originalContent) return null;
+    /* ================= 5. 精准补丁算法 (支持 AI 自主选定重复位置序号版) ================= */
+    function applyPatch(originalContent, searchBlock, replaceBlock, occurrence = 'last') {
+      if (!originalContent || !searchBlock) return null;
       
       const normalize = (s) => (s || '').replace(/\r\n/g, '\n').replace(/\t/g, '  ');
       let orig = normalize(originalContent);
       let search = normalize(searchBlock);
       let replace = normalize(replaceBlock);
 
-      // 容错 0：如果 SEARCH 块为空（如截图所示），说明 AI 是要插入或覆盖到头部/尾部
-      if (!search.trim()) {
-        if (replace.trim()) {
-          // 如果原文件开头有明显的冲突符，优先替换冲突开头，否则追加到末尾
-          if (orig.startsWith('=======') || orig.startsWith('==========')) {
-            return replace + '\n' + orig.replace(/^[=\s\S]*?============================================================/, '');
-          }
-          return orig + '\n' + replace;
-        }
-        return orig;
+      const trimSearch = search.trim();
+      // 拦截类似 "/*"、"{" 这种单薄标点假补丁
+      if (trimSearch.length < 8 && /^[\/\*\s\{\}\(\)\<\>\=]+$/.test(trimSearch)) {
+        return null;
       }
 
-      // 阶段 1：完全精准字面量匹配
-      if (orig.includes(search)) {
-        return orig.replace(search, replace);
+      // 辅助函数：按 AI 指定的 occurrence 序号进行精确定位替换
+      const replaceAtOccurrence = (source, target, rep, occ) => {
+        if (occ === 'all') {
+          return source.split(target).join(rep);
+        }
+        
+        // 收集该目标在全文中出现的所有起始下标
+        const matchIndices = [];
+        let pos = source.indexOf(target);
+        while (pos !== -1) {
+          matchIndices.push(pos);
+          pos = source.indexOf(target, pos + target.length);
+        }
+        if (matchIndices.length === 0) return null;
+
+        let targetIndex = -1;
+        if (occ === 'first' || occ === '1') {
+          targetIndex = matchIndices[0];
+        } else if (occ === 'last') {
+          targetIndex = matchIndices[matchIndices.length - 1];
+        } else {
+          const num = parseInt(occ);
+          if (!isNaN(num) && num >= 1 && num <= matchIndices.length) {
+            targetIndex = matchIndices[num - 1];
+          } else {
+            // 序号超出时兜底使用最后一处
+            targetIndex = matchIndices[matchIndices.length - 1];
+          }
+        }
+
+        return source.slice(0, targetIndex) + rep + source.slice(targetIndex + target.length);
+      };
+
+      // 阶段 1：完全精准字面量匹配（优先按 AI 指定的第几处替换）
+      const p1Result = replaceAtOccurrence(orig, search, replace, occurrence);
+      if (p1Result !== null) {
+        return p1Result;
       }
 
       // 阶段 2：修剪两端首尾空白匹配
-      const trimSearch = search.trim();
-      if (orig.includes(trimSearch)) {
-        return orig.replace(trimSearch, replace.trim());
+      const p2Result = replaceAtOccurrence(orig, trimSearch, replace.trim(), occurrence);
+      if (p2Result !== null) {
+        return p2Result;
       }
 
-      // 阶段 3：按行忽略缩进与行尾空格匹配
+      // 阶段 2：修剪两端首尾空白匹配
+      const lastTrimIdx = orig.lastIndexOf(trimSearch);
+      if (lastTrimIdx !== -1) {
+        return orig.slice(0, lastTrimIdx) + replace.trim() + orig.slice(lastTrimIdx + trimSearch.length);
+      }
+
+      // 阶段 3：按行忽略缩进与行尾空格匹配（优先倒序查找）
       const origLines = orig.split('\n');
       const searchLines = search.split('\n').map(l => l.trimEnd());
       
-      // 去除 searchLines 首尾多余的纯空行
       while (searchLines.length > 0 && searchLines[0].trim() === '') searchLines.shift();
       while (searchLines.length > 0 && searchLines[searchLines.length - 1].trim() === '') searchLines.pop();
       if (searchLines.length === 0) return null;
 
-      for (let i = 0; i <= origLines.length - searchLines.length; i++) {
+      for (let i = origLines.length - searchLines.length; i >= 0; i--) {
         let matched = true;
         for (let j = 0; j < searchLines.length; j++) {
           if (origLines[i + j].trim() !== searchLines[j].trim()) {
@@ -1869,9 +1907,9 @@
         }
       }
 
-      // 阶段 4：滑动窗口忽略空行模糊匹配 (高容错)
+      // 阶段 4：滑动窗口忽略空行模糊匹配（从后往前倒序排查）
       const nonBlankSearch = searchLines.filter(l => l.trim().length > 0);
-      for (let i = 0; i < origLines.length; i++) {
+      for (let i = origLines.length - nonBlankSearch.length; i >= 0; i--) {
         if (origLines[i].trim() !== nonBlankSearch[0].trim()) continue;
         let matchCount = 0;
         let scanIdx = i;
@@ -1889,17 +1927,15 @@
         }
       }
 
-      // 阶段 5：首尾锚点特征匹配（针对 CSS 类名块与函数块的终极自愈）
+      // 阶段 5：首尾锚点特征匹配（用于 CSS 类名块被重复修改时的精准捕获）
       if (nonBlankSearch.length >= 2) {
         const firstLine = nonBlankSearch[0].trim();
         const lastLine = nonBlankSearch[nonBlankSearch.length - 1].trim();
 
-        for (let i = 0; i < origLines.length; i++) {
+        for (let i = origLines.length - 1; i >= 0; i--) {
           if (origLines[i].trim() === firstLine) {
-            // 往后寻找闭合或尾行
             for (let j = i + 1; j < Math.min(origLines.length, i + nonBlankSearch.length + 8); j++) {
               if (origLines[j].trim() === lastLine) {
-                // 找到了首尾对应的代码块，直接替换该区间
                 origLines.splice(i, j - i + 1, replace);
                 return origLines.join('\n');
               }
@@ -2038,29 +2074,13 @@
       try {
         const finalSystemPrompt = state.customPrompt || DEFAULT_SYSTEM_PROMPT;
 
-        // 彻底清洗历史消息，剔除过时的旧文件内容，杜绝 AI 受到旧代码干扰
-        const cleanOldFileContentRegex = /<<<FILE_CONTENT path="[^"]+">>>[\s\S]*?<<<END_FILE_CONTENT>>>/g;
+        // 完整保留历史消息代码，杜绝将代码误清空为汉字提示
         const messagesToSend = [
           { role: 'system', content: finalSystemPrompt },
-          ...state.messages.slice(0, -1).map(m => {
-            let sanitized = m.role === 'user' ? m.apiContent : (m.cleanText || m.content);
-            if (typeof sanitized === 'string') {
-              sanitized = sanitized.replace(cleanOldFileContentRegex, '【此处旧版代码已由系统自动更新至最新版本】');
-            } else if (Array.isArray(sanitized)) {
-              sanitized = sanitized.map(part => {
-                if (part.type === 'text') {
-                  return { ...part, text: part.text.replace(cleanOldFileContentRegex, '【此处旧版代码已由系统自动更新至最新版本】') };
-                }
-                return part;
-              });
-            }
-            return { role: m.role, content: sanitized };
-          }),
-          // 仅最新一条当前发送的消息，携带真正最新的实时文件
-          {
-            role: state.messages[state.messages.length - 1].role,
-            content: state.messages[state.messages.length - 1].apiContent
-          }
+          ...state.messages.map(m => ({
+            role: m.role,
+            content: m.role === 'user' ? m.apiContent : (m.cleanText || m.content)
+          }))
         ];
 
         let content = '';
@@ -2287,15 +2307,16 @@
 
         const respTime = getFormattedTime();
 
-        // 提取精准局部修改补丁
-        const patchRegex = /<<<PATCH path="([^"]+)">>>[\s\S]*?<<<<<<< SEARCH([\s\S]*?)=======([\s\S]*?)>>>>>>> REPLACE[\s\S]*?<<<END_PATCH>>>/g;
+        // 提取精准局部修改补丁（支持 AI 自选 occurrence="1"、"2"、"first"、"last"、"all"）
+        const patchRegex = /<<<PATCH\s+path="([^"]+)"(?:\s+occurrence="([^"]+)")?>>>[\s\S]*?<<<<<<< SEARCH([\s\S]*?)=======([\s\S]*?)>>>>>>> REPLACE[\s\S]*?<<<END_PATCH>>>/g;
         const patches = [];
         let pMatch;
         while ((pMatch = patchRegex.exec(content)) !== null) {
           patches.push({
             path: pMatch[1].trim(),
-            search: pMatch[2].replace(/^\n/, '').replace(/\n$/, ''),
-            replace: pMatch[3].replace(/^\n/, '').replace(/\n$/, '')
+            occurrence: pMatch[2] ? pMatch[2].trim().toLowerCase() : 'last',
+            search: pMatch[3].replace(/^\n/, '').replace(/\n$/, ''),
+            replace: pMatch[4].replace(/^\n/, '').replace(/\n$/, '')
           });
         }
 
@@ -2420,7 +2441,7 @@
             const currentFilePatches = filePatches[filePath];
 
             for (const patch of currentFilePatches) {
-              const patched = applyPatch(updatedContent, patch.search, patch.replace);
+              const patched = applyPatch(updatedContent, patch.search, patch.replace, patch.occurrence || 'last');
               if (patched === null) {
                 throw new Error(`局部片段未在原文件中找到匹配`);
               }
