@@ -1695,22 +1695,7 @@
         }
       }
 
-      // 阶段 5：首尾行锚点容错
-      if (searchLines.length >= 2) {
-        const first = searchLines[0];
-        const last = searchLines[searchLines.length - 1];
-        for (let i = 0; i < origLines.length; i++) {
-          if (origLines[i].trim() === first) {
-            for (let k = i + 1; k < Math.min(i + searchLines.length + 8, origLines.length); k++) {
-              if (origLines[k].trim() === last) {
-                origLines.splice(i, k - i + 1, replace);
-                return origLines.join('\n');
-              }
-            }
-          }
-        }
-      }
-
+      // 彻底移除阶段5首尾行盲目容错，防止div闭合标签错位导致的大面积嵌套与错乱损坏
       return null;
     }
 
@@ -1840,7 +1825,11 @@
 =======
 修改后的新代码
 >>>>>>> REPLACE
-<<<END_PATCH>>>`;
+<<<END_PATCH>>>
+3. SEARCH搜索块规则（至关重要）：
+- SEARCH块中的代码必须原原本本来自文件现有内容，严禁臆造。
+- 每轮输出修改之前必须先阅读读取文件，必须仔细阅读文件源代码。
+- 必须包含目标代码前后各2至3行未修改的上下文，保证在整个文件中有且仅有唯一的匹配位置，避免标签嵌套错乱。`;
 
         const finalSystemPrompt = state.customPrompt || baseDefaultPrompt;
 
@@ -1848,7 +1837,7 @@
           { role: 'system', content: finalSystemPrompt },
           ...state.messages.map(m => ({
             role: m.role,
-            content: m.role === 'user' ? m.apiContent : m.content
+            content: m.role === 'user' ? m.apiContent : (m.cleanText || m.content)
           }))
         ];
 
@@ -2107,15 +2096,16 @@
           msgIndex: state.messages.length
         });
 
-        // 核心突破：同步更新 AI 上下文中的文件内容，让 AI 确切知道文件已更新
-        if (patches.length > 0) {
+        // 修复：若开启自动推送，打补丁和推送由 executePatchPushPipeline 统一完成，避免在此处提前打补丁导致流水线报“搜不到代码”；
+        // 仅在未开启自动推送或未绑定 Git 时，才在此处直接打补丁到本地缓存
+        const willPushToGit = Boolean(state.autoPush && patches.length > 0 && state.git.token && state.git.repo);
+        if (!willPushToGit && patches.length > 0) {
           patches.forEach(p => {
             if (state.loadedFilesMap[p.path]) {
               const patched = applyPatch(state.loadedFilesMap[p.path].content, p.search, p.replace);
               if (patched) {
                 state.loadedFilesMap[p.path].content = patched;
                 state.loadedFilesMap[p.path].lastUpdated = Date.now();
-                // 同步刷新所有历史消息中携带的该文件旧内容，避免 AI 下轮阅读时看到旧版本
                 syncUpdatedFileToConversationContext(p.path, patched);
               }
             }
@@ -2135,7 +2125,7 @@
         });
 
         // 执行自动推送
-        if (state.autoPush && patches.length > 0 && state.git.token && state.git.repo) {
+        if (willPushToGit) {
           executePatchPushPipeline(patches);
         }
 
