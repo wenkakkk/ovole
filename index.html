@@ -28,12 +28,13 @@
       }
     }
   </script>
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Claude%20Code%20Studio%22%2C%22short_name%22%3A%22CodeStudio%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23FAF9F5%22%2C%22theme_color%22%3A%22%23FAF9F5%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fi.postimg.cc%2FjjpfKpFf%2F1786631737260.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
-  <link rel="apple-touch-icon" href="https://i.postimg.cc/jjpfKpFf/1786631737260.png">
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Spring%20Code%22%2C%22short_name%22%3A%22SpringCode%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23FAF9F5%22%2C%22theme_color%22%3A%22%23FAF9F5%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fi.postimg.cc%2FQM63k69C%2Fshare-1790440991293.jpg%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fjpeg%22%7D%5D%7D">
+  <link rel="apple-touch-icon" href="https://i.postimg.cc/QM63k69C/share-1790440991293.jpg">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#FAF9F5">
   <style>
-    .mobile-height { height: 100dvh; }
+    html, body { height: 100vh; margin: 0; padding: 0; background-color: #FAF9F5; }
+    .mobile-height { height: 100vh; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     pre { white-space: pre-wrap; word-break: break-all; }
@@ -70,8 +71,8 @@
         </svg>
       </button>
 
-      <!-- 手工直接编辑与推送 -->
-      <button onclick="openDirectEditor()" class="p-1.5 active:opacity-60 text-claude-accent" title="直接编写与推送">
+      <!-- 打开右侧文件档案与推送侧边栏 -->
+      <button onclick="toggleRightDrawer(true)" class="p-1.5 active:opacity-60 text-claude-accent" title="文件档案与版本控制">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
         </svg>
@@ -215,6 +216,54 @@
       <button onclick="openFullSettingsPage()" class="w-full py-2 px-3 rounded-xl flex items-center gap-3 text-xs font-medium text-claude-text active:bg-claude-hover">
         <svg class="w-4 h-4 text-claude-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
         <span>设置</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- 右侧抽屉遮罩 -->
+  <div id="right-drawer-backdrop" onclick="toggleRightDrawer(false)" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden z-30 transition-opacity"></div>
+
+  <!-- 全新右侧侧边栏 (独立会话文件管理与版本时间轴) -->
+  <aside id="right-drawer" class="fixed top-0 bottom-0 right-0 w-[72%] max-w-[270px] bg-[#FAF9F6] border-l border-claude-border z-40 transform translate-x-full transition-transform duration-300 flex flex-col justify-between">
+    <!-- 顶部状态栏与推送开关 -->
+    <div class="p-3.5 border-b border-claude-border flex flex-col gap-2.5 bg-claude-sidebar">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-claude-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          <span class="font-bold text-xs text-claude-text">会话档案与版本树</span>
+        </div>
+        <button onclick="toggleRightDrawer(false)" class="p-1 text-claude-muted hover:text-claude-text active:opacity-60">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- 自动推送开关卡片 -->
+      <div class="flex items-center justify-between bg-claude-card border border-claude-border rounded-xl px-3 py-2 text-xs">
+        <div class="flex items-center gap-2">
+          <span id="right-autopush-indicator" class="w-2 h-2 rounded-full bg-claude-success"></span>
+          <span class="font-medium text-[11px] text-claude-text">自动同步推送到 Git</span>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="right-autopush-toggle" onchange="toggleAutoPushSetting(this.checked)" class="sr-only peer">
+          <div class="w-8 h-4 bg-claude-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-claude-border after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-claude-accent"></div>
+        </label>
+      </div>
+    </div>
+
+    <!-- 侧边栏文件与版本历史容器 -->
+    <div id="right-drawer-file-list" class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
+      <div class="text-[11px] text-claude-muted text-center py-8">当前会话暂无文件</div>
+    </div>
+
+    <!-- 底部固定：一键手动推送与统计 -->
+    <div class="p-3 border-t border-claude-border bg-claude-sidebar space-y-2">
+      <div class="flex items-center justify-between text-[10px] text-claude-muted px-1 font-mono">
+        <span>档案文件: <strong id="right-drawer-file-count" class="text-claude-text">0</strong> 个</span>
+        <span id="right-drawer-repo-tag" class="truncate max-w-[150px]">未绑定</span>
+      </div>
+      <button onclick="executeManualOneKeyPush()" id="btn-manual-onekey-push" class="w-full py-2.5 px-3 bg-claude-accent text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 active:bg-claude-accentHover shadow-xs transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        <span>一键手动推送全部最新文件</span>
       </button>
     </div>
   </aside>
@@ -856,6 +905,7 @@
       currentConversationId: null,
       messages: [],
       loadedFilesMap: {},
+      sessionFiles: {}, // 每个会话独立的档案：{ [path]: { currentContent, sha, isLocal, versions: [ { id, timestamp, timeStr, content, note } ] } }
       selectedPaths: new Set(),
       selectedImageBase64: null,
       totalSessionTokens: 0
@@ -1340,8 +1390,8 @@
       }
     }
 
-    function toggleAutoPushSetting() {
-      state.autoPush = !state.autoPush;
+    function toggleAutoPushSetting(forcedVal = null) {
+      state.autoPush = forcedVal !== null ? forcedVal : !state.autoPush;
       storage.set('settings', { key: 'autopush_setting', val: state.autoPush });
       updateAutoPushUI();
     }
@@ -1349,14 +1399,235 @@
     function updateAutoPushUI() {
       const dot = document.getElementById('autopush-dot');
       const text = document.getElementById('autopush-label');
-      if (!dot || !text) return; // 杜绝 null 读取报错
-      if (state.autoPush) {
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-claude-success';
-        text.innerText = '自动推送: 开';
-      } else {
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-claude-muted';
-        text.innerText = '自动推送: 关';
+      const rightToggle = document.getElementById('right-autopush-toggle');
+      const rightIndicator = document.getElementById('right-autopush-indicator');
+      
+      if (rightToggle) rightToggle.checked = Boolean(state.autoPush);
+      if (rightIndicator) {
+        rightIndicator.className = state.autoPush ? 'w-2 h-2 rounded-full bg-claude-success' : 'w-2 h-2 rounded-full bg-claude-muted';
       }
+
+      if (dot && text) {
+        if (state.autoPush) {
+          dot.className = 'w-1.5 h-1.5 rounded-full bg-claude-success';
+          text.innerText = '自动推送: 开';
+        } else {
+          dot.className = 'w-1.5 h-1.5 rounded-full bg-claude-muted';
+          text.innerText = '自动推送: 关';
+        }
+      }
+    }
+
+    // 右侧侧边栏抽屉开关
+    function toggleRightDrawer(open) {
+      const d = document.getElementById('right-drawer');
+      const b = document.getElementById('right-drawer-backdrop');
+      if (!d || !b) return;
+      if (open) {
+        renderRightDrawerFileList();
+        d.classList.remove('translate-x-full');
+        b.classList.remove('hidden');
+      } else {
+        d.classList.add('translate-x-full');
+        b.classList.add('hidden');
+      }
+    }
+
+    // 将文件存入当前会话的右侧侧边栏，并生成/增加时间轴版本档案
+    function recordFileToRightSidebar(filePath, content, note = '载入文件', sha = null, isLocal = false) {
+      if (!state.sessionFiles) state.sessionFiles = {};
+      const now = Date.now();
+      const timeStr = getFormattedTime();
+      const newVersion = {
+        id: 'v_' + now + '_' + Math.random().toString(36).substring(2, 6),
+        timestamp: now,
+        timeStr: timeStr,
+        content: content,
+        note: note
+      };
+
+      if (!state.sessionFiles[filePath]) {
+        state.sessionFiles[filePath] = {
+          path: filePath,
+          sha: sha,
+          isLocal: isLocal,
+          currentContent: content,
+          versions: [newVersion]
+        };
+      } else {
+        const item = state.sessionFiles[filePath];
+        item.currentContent = content;
+        if (sha) item.sha = sha;
+        if (!Array.isArray(item.versions)) item.versions = [];
+        item.versions.unshift(newVersion);
+      }
+
+      // 同步到全局 loadedFilesMap，保证工程树与发送上下文同步取到最新版本
+      state.loadedFilesMap[filePath] = {
+        path: filePath,
+        sha: sha || state.sessionFiles[filePath].sha,
+        content: content,
+        isLocal: isLocal,
+        lastUpdated: now
+      };
+
+      // 实时更新当前会话上下文并保存
+      syncUpdatedFileToConversationContext(filePath, content);
+      renderRightDrawerFileList();
+    }
+
+    // 渲染右侧侧边栏文件列表及类似 Git 的时间轴版本档案
+    function renderRightDrawerFileList() {
+      const container = document.getElementById('right-drawer-file-list');
+      const countEl = document.getElementById('right-drawer-file-count');
+      const repoTag = document.getElementById('right-drawer-repo-tag');
+      if (repoTag) repoTag.innerText = state.git.repo || '未绑定仓库';
+      if (!container) return;
+
+      const fileKeys = Object.keys(state.sessionFiles || {});
+      if (countEl) countEl.innerText = fileKeys.length;
+
+      if (fileKeys.length === 0) {
+        container.innerHTML = `
+          <div class="text-[11px] text-claude-muted text-center py-12 space-y-1">
+            <p>当前会话暂无文件</p>
+            <p class="text-[10px] text-claude-muted/70">导入或聊天载入的文件将自动归档在此</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+      fileKeys.forEach(filePath => {
+        const fileObj = state.sessionFiles[filePath];
+        const versions = fileObj.versions || [];
+        const card = document.createElement('div');
+        card.className = 'bg-claude-card border border-claude-border rounded-2xl overflow-hidden shadow-2xs';
+
+        let timelineHtml = '';
+        versions.forEach((ver, vIdx) => {
+          const isLatest = vIdx === 0;
+          const statusBadge = isLatest
+            ? '<span class="bg-emerald-100 text-emerald-800 text-[9px] px-1.5 py-0.2 rounded font-medium">当前最新 (已修好)</span>'
+            : `<button onclick="revertFileVersion('${filePath}', '${ver.id}')" class="text-[10px] text-claude-accent border border-claude-accent/40 rounded px-1.5 py-0.2 hover:bg-claude-accent hover:text-white transition-colors">回退到此节点</button>`;
+
+          timelineHtml += `
+            <div class="relative pl-4 pb-2.5 last:pb-0">
+              <div class="absolute left-0 top-1.5 w-2 h-2 rounded-full ${isLatest ? 'bg-emerald-500 ring-2 ring-emerald-200' : 'bg-claude-muted'}"></div>
+              ${vIdx !== versions.length - 1 ? '<div class="absolute left-[3px] top-3.5 bottom-0 w-[2px] bg-claude-border"></div>' : ''}
+              <div class="flex items-center justify-between text-[11px] leading-tight">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-claude-text font-medium">${ver.timeStr}</span>
+                  <span class="text-claude-muted text-[10px] truncate max-w-[90px]">${ver.note || '修改'}</span>
+                </div>
+                ${statusBadge}
+              </div>
+            </div>
+          `;
+        });
+
+        card.innerHTML = `
+          <div class="p-2.5 bg-claude-sidebar border-b border-claude-border flex items-center justify-between">
+            <div class="flex items-center gap-1.5 truncate flex-1">
+              <svg class="w-3.5 h-3.5 text-claude-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              <span class="font-mono text-xs font-semibold text-claude-text truncate" title="${filePath}">${filePath}</span>
+            </div>
+            <span class="text-[10px] font-mono text-claude-muted ml-2">${versions.length}个版本</span>
+          </div>
+          <div class="p-3 bg-claude-card space-y-1">
+            <div class="text-[10px] font-semibold text-claude-muted mb-1.5">版本时间轴 (点击可快速回退)</div>
+            ${timelineHtml}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 回退指定文件到任意时间节点档案
+    async function revertFileVersion(filePath, versionId) {
+      const fileObj = state.sessionFiles?.[filePath];
+      if (!fileObj || !Array.isArray(fileObj.versions)) return;
+      const targetVer = fileObj.versions.find(v => v.id === versionId);
+      if (!targetVer) return;
+
+      if (!confirm(`确定将 [${filePath}] 回退到 [${targetVer.timeStr}] 的历史节点吗？\n回退后将以该版本实时注入上下文。`)) return;
+
+      // 生成一条回退记录，保证时间轴不破坏
+      recordFileToRightSidebar(filePath, targetVer.content, `回退到 ${targetVer.timeStr}`, fileObj.sha, fileObj.isLocal);
+      renderSelectedFileChips();
+      await saveCurrentConversation();
+      alert(`已成功回退文件 [${filePath}]，最新代码已同步刷新至聊天上下文！`);
+    }
+
+    // 侧边栏底部：一键手动推送所有会话文件至 GitHub
+    async function executeManualOneKeyPush() {
+      const fileKeys = Object.keys(state.sessionFiles || {});
+      if (fileKeys.length === 0) return alert('当前侧边栏无任何可推送文件');
+      if (!state.git.token || !state.git.repo) {
+        alert('请先在设置中绑定 GitHub Token 和目标仓库');
+        return openFullSettingsPage('git');
+      }
+
+      const btn = document.getElementById('btn-manual-onekey-push');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-pulse">正在推送 ${fileKeys.length} 个文件...</span>`;
+
+      let okCount = 0;
+      let failCount = 0;
+
+      for (const path of fileKeys) {
+        const item = state.sessionFiles[path];
+        if (!item || !item.currentContent) continue;
+        try {
+          let currentSha = item.sha;
+          if (!currentSha) {
+            try {
+              const headRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${path}?ref=${state.git.branch}`, {
+                headers: { 'Authorization': `Bearer ${state.git.token}` }
+              });
+              if (headRes.ok) {
+                const headData = await headRes.json();
+                currentSha = headData.sha;
+              }
+            } catch(e) {}
+          }
+
+          const base64Content = btoa(unescape(encodeURIComponent(item.currentContent)));
+          const putBody = {
+            message: `Manual batch push ${path} via Spring Code`,
+            content: base64Content,
+            branch: state.git.branch
+          };
+          if (currentSha) putBody.sha = currentSha;
+
+          const putRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${path}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${state.git.token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(putBody)
+          });
+
+          if (putRes.ok) {
+            const putData = await putRes.json();
+            item.sha = putData.content?.sha || currentSha;
+            okCount++;
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          failCount++;
+        }
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        <span>一键手动推送全部最新文件</span>
+      `;
+      renderRightDrawerFileList();
+      alert(`一键推送完成！成功: ${okCount} 个，失败: ${failCount} 个`);
     }
 
     function updateRealtimeTokenEstimator() {
@@ -1765,10 +2036,12 @@
             });
             const d = await res.json();
             const content = decodeURIComponent(escape(atob(d.content)));
-            state.loadedFilesMap[p] = { path: p, sha: d.sha, content: content, isLocal: false };
+            recordFileToRightSidebar(p, content, '从Git仓库载入', d.sha, false);
           } catch (e) {
             console.error('获取文件失败:', p, e);
           }
+        } else if (fileObj) {
+          recordFileToRightSidebar(p, fileObj.content, '载入上下文', fileObj.sha, fileObj.isLocal);
         }
       }));
 
@@ -2450,10 +2723,13 @@
               updatedContent = patched;
             }
 
+            // 实时存入右侧侧边栏版本树，自动标记已修好并记录时间戳
+            recordFileToRightSidebar(filePath, updatedContent, 'AI修好补丁更新', fileObj?.sha, isLocalFile);
+
             logDiv.innerHTML += `
               <div class="text-claude-success flex items-center gap-1 font-mono font-bold">
                 <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                修改成功 [${filePath}]
+                修改成功 [${filePath}] (已修好并归档至侧边栏)
               </div>
             `;
           } catch (patchErr) {
@@ -2826,20 +3102,12 @@
       const reader = new FileReader();
       reader.onload = (event) => {
         const content = event.target.result;
-        state.loadedFilesMap[file.name] = {
-          path: file.name,
-          sha: null,
-          content: content,
-          isLocal: true,
-          lastUpdated: Date.now()
-        };
+        recordFileToRightSidebar(file.name, content, '本地导入', null, true);
         state.selectedPaths.add(file.name);
-        // 关键修复：导入新文件后，立即原地覆盖历史记录里可能残留的同名旧文件
-        syncUpdatedFileToConversationContext(file.name, content);
         renderLocalFilesTree();
         renderSelectedFileChips();
         updateBatchActionBar();
-        alert(`文件 [${file.name}] 已作为最新版本导入，已彻底覆盖所有旧数据！`);
+        alert(`文件 [${file.name}] 已存储至右侧侧边栏，作为当前最新版本实时注入上下文！`);
       };
       reader.readAsText(file);
       e.target.value = '';
@@ -3103,16 +3371,18 @@
     /* ================= 12. 会话持久化与模型管理 ================= */
     async function createNewConversation() {
       const id = 'c_' + Date.now();
-      const item = { id, title: '新聊天', updatedAt: Date.now(), messages: [] };
+      const item = { id, title: '新聊天', updatedAt: Date.now(), messages: [], sessionFiles: {} };
       await storage.set('conversations', item);
       state.currentConversationId = id;
       state.messages = [];
+      state.sessionFiles = {};
       state.selectedPaths.clear();
       state.totalSessionTokens = 0;
       document.getElementById('footer-token-count').innerText = '0 tok';
       document.getElementById('current-title').innerText = '新聊天';
       document.getElementById('chat-stream').innerHTML = '';
       renderSelectedFileChips();
+      renderRightDrawerFileList();
       updateBatchActionBar();
       toggleDrawer(false);
       renderHistoryList();
@@ -3123,6 +3393,22 @@
       if (!conv) return;
       state.currentConversationId = conv.id;
       state.messages = conv.messages || [];
+      state.sessionFiles = conv.sessionFiles || {};
+
+      // 同步当前会话所有侧边栏文件到 loadedFilesMap 中
+      Object.keys(state.sessionFiles).forEach(p => {
+        const item = state.sessionFiles[p];
+        state.loadedFilesMap[p] = {
+          path: p,
+          sha: item.sha,
+          content: item.currentContent,
+          isLocal: item.isLocal,
+          lastUpdated: item.versions?.[0]?.timestamp || Date.now()
+        };
+      });
+
+      renderRightDrawerFileList();
+
       // 重新统计当前载入会话的上下文窗口 Token 数量
       const lastAssistantMsg = [...state.messages].reverse().find(m => m.role === 'assistant' && m.usage);
       state.totalSessionTokens = lastAssistantMsg ? lastAssistantMsg.usage.total_tokens : Math.round(JSON.stringify(state.messages).length / 3.6);
@@ -3163,7 +3449,8 @@
         id: state.currentConversationId,
         title,
         updatedAt: Date.now(),
-        messages: state.messages
+        messages: state.messages,
+        sessionFiles: state.sessionFiles || {}
       });
       renderHistoryList();
     }
