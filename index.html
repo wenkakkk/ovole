@@ -3462,17 +3462,7 @@
           `;
         }
 
-        // 核心修复：将修改与推送的最终状态作为 pipeline_log 存入 messages 并永久持久化到 IndexedDB！
-        // 这样无论是刷新页面、切换会话，还是以后回顾检查，都能完整看到历史推送结果！
-        state.messages.push({
-          role: 'pipeline_log',
-          title: finalTitle,
-          hasError: hasError,
-          pushSuccessCount: pushSuccessCount,
-          htmlLog: logDiv.innerHTML,
-          time: getFormattedTime()
-        });
-        await saveCurrentConversation();
+        // 仅在当前界面动态呈现推送结果给用户看，坚决不作为独立消息存入 messages 数组，彻底避免刷新后变成 undefined
       }
 
       const vp = document.getElementById('chat-viewport');
@@ -4111,14 +4101,13 @@
       const stream = document.getElementById('chat-stream');
       if (!stream) return;
       stream.innerHTML = '';
+      state.messages = state.messages.filter(m => m && m.role !== 'pipeline_log');
       state.messages.forEach((m, idx) => {
         if (m.role === 'user') {
           renderUserMessageDOM(m.displayObj, m.time, idx);
-        } else if (m.role === 'pipeline_log') {
-          renderPipelineLogDOM(m, idx);
-        } else {
+        } else if (m.role === 'assistant') {
           renderAssistantMessageDOM({
-            cleanText: m.cleanText || m.content,
+            cleanText: m.cleanText || m.content || '',
             reasoning: m.reasoning,
             thinkingTime: m.thinkingTime,
             usage: m.usage,
@@ -4316,7 +4305,8 @@
       const conv = await storage.get('conversations', id);
       if (!conv) return;
       state.currentConversationId = conv.id;
-      state.messages = conv.messages || [];
+      // 过滤清除历史残留的 pipeline_log 假消息，彻底杜绝 undefined
+      state.messages = (conv.messages || []).filter(m => m && m.role !== 'pipeline_log');
       state.sessionFiles = conv.sessionFiles || {};
 
       // 同步当前会话所有侧边栏文件到 loadedFilesMap 中
@@ -4344,9 +4334,9 @@
       state.messages.forEach((m, idx) => {
         if (m.role === 'user') {
           renderUserMessageDOM(m.displayObj, m.time, idx);
-        } else {
+        } else if (m.role === 'assistant') {
           renderAssistantMessageDOM({
-            cleanText: m.cleanText || m.content,
+            cleanText: m.cleanText || m.content || '',
             reasoning: m.reasoning,
             thinkingTime: m.thinkingTime,
             usage: m.usage,
