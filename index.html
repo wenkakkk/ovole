@@ -357,10 +357,7 @@
     <!-- 顶部横向板块交互栏 (Tab 导航栏，全面禁止任何 emoji 表情，统一极简现代线框风格) -->
     <div class="flex items-center px-4 bg-claude-sidebar border-b border-claude-border overflow-x-auto no-scrollbar gap-1 flex-shrink-0">
       <button id="set-tab-ai" onclick="switchSettingsSection('ai')" class="py-3 px-3 text-xs font-semibold text-claude-accent border-b-2 border-claude-accent flex items-center gap-1.5 whitespace-nowrap">
-        <span>接口与模型</span>
-      </button>
-      <button id="set-tab-git" onclick="switchSettingsSection('git')" class="py-3 px-3 text-xs font-semibold text-claude-muted flex items-center gap-1.5 whitespace-nowrap">
-        <span>仓库配置</span>
+        <span>接口与仓库</span>
       </button>
       <button id="set-tab-prompt" onclick="switchSettingsSection('prompt')" class="py-3 px-3 text-xs font-semibold text-claude-muted flex items-center gap-1.5 whitespace-nowrap">
         <span>提示词与外观</span>
@@ -375,9 +372,11 @@
 
     <div class="flex-1 overflow-y-auto p-4 no-scrollbar pb-10">
       
-      <!-- 板块 1: AI 接口与模型设置 -->
+      <!-- 板块 1: AI 接口与 GitHub 仓库同屏合一设置中心 -->
       <div id="section-settings-ai" class="space-y-4">
-        <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3">
+        
+        <!-- 卡片 A: AI 接口配置 -->
+        <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 shadow-2xs">
           <div class="flex items-center justify-between border-b border-claude-border pb-2">
             <span class="font-semibold text-xs text-claude-text">AI 接口方案与预设</span>
             <button onclick="deleteCurrentPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
@@ -413,14 +412,18 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 板块 2: GitHub 仓库与合作者设置 -->
-      <div id="section-settings-git" class="space-y-4 hidden">
-        <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 text-xs">
+        <!-- 卡片 B: GitHub 仓库与合作者设置 (放在同一页面) -->
+        <div id="section-settings-git-anchor" class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 text-xs shadow-2xs">
           <div class="flex items-center justify-between border-b border-claude-border pb-2">
             <span class="font-semibold text-xs text-claude-text">GitHub 账号与仓库方案</span>
-            <button onclick="deleteCurrentGitPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
+            <div class="flex items-center gap-2">
+              <button onclick="openGitDetailedTutorialModal()" class="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] font-semibold active:bg-emerald-100 flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                <span>保姆级接入教程</span>
+              </button>
+              <button onclick="deleteCurrentGitPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
+            </div>
           </div>
           
           <div class="flex gap-2">
@@ -457,6 +460,7 @@
             </div>
           </div>
         </div>
+
       </div>
 
       <!-- 板块 3: 提示词与界面自定义 -->
@@ -485,8 +489,11 @@
         </div>
 
         <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-2 text-xs">
-          <span class="font-semibold text-xs text-claude-text block border-b border-claude-border pb-2">自定义全局界面 CSS</span>
-          <textarea id="cfg-custom-css" rows="4" placeholder="在此注入自定义 CSS..." class="w-full bg-claude-bg border border-claude-border rounded-xl p-2.5 text-xs font-mono select-text focus:outline-none leading-relaxed"></textarea>
+          <div class="flex items-center justify-between border-b border-claude-border pb-2">
+            <span class="font-semibold text-xs text-claude-text">自定义全局界面 CSS (高可视宽敞编辑区)</span>
+            <button onclick="document.getElementById('cfg-custom-css').value = ''" class="text-red-500 active:underline text-[10px]">清空 CSS</button>
+          </div>
+          <textarea id="cfg-custom-css" rows="12" placeholder="在此注入自定义 CSS... 例如修改字体、隐藏多余按钮、微调界面配色等" class="w-full h-56 bg-claude-bg border border-claude-border rounded-xl p-3 text-xs font-mono select-text focus:outline-none leading-relaxed resize-y"></textarea>
         </div>
       </div>
 
@@ -797,32 +804,186 @@
     </div>
   </div>
 
-  <!-- 模型选择弹窗 (含流式开关、搜索、手动添加) -->
+  <!-- 模型选择弹窗 (含流式开关、温度调节、上下文限制、最大Token与重置按键) -->
   <div id="model-picker-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
-    <div class="bg-claude-card w-full max-w-xs rounded-2xl border border-claude-border shadow-xl p-4 space-y-3">
-      <div class="flex justify-between items-center border-b border-claude-border pb-2">
-        <span class="font-semibold text-sm">选择工作模型</span>
+    <div class="bg-claude-card w-full max-w-sm rounded-2xl border border-claude-border shadow-xl p-4 space-y-3 max-h-[88vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-claude-border pb-2 flex-shrink-0">
+        <div class="flex items-center gap-1.5">
+          <span class="font-semibold text-sm">模型与推理参数</span>
+        </div>
         <button onclick="closeModal('model-picker-modal')" class="p-1 text-claude-muted">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
       </div>
 
-      <!-- 流式输出开关 -->
-      <div class="flex items-center justify-between bg-claude-sidebar p-2 rounded-xl border border-claude-border text-xs">
-        <span class="font-medium text-claude-text">流式打字输出 (Stream)</span>
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" id="stream-toggle" onchange="onStreamToggleChange()" class="sr-only peer">
-          <div class="w-8 h-4 bg-claude-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-claude-border after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-claude-accent"></div>
-        </label>
+      <div class="space-y-3 overflow-y-auto no-scrollbar flex-1 pr-0.5">
+        
+        <!-- 高级推理参数卡片 -->
+        <div class="p-3 bg-claude-sidebar rounded-xl border border-claude-border space-y-3 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-[11px] text-claude-text">推理超参数微调</span>
+            <button onclick="resetModelParametersToDefault()" class="px-2 py-0.5 rounded border border-claude-border bg-claude-card text-[10px] text-claude-accent font-medium active:bg-claude-hover shadow-2xs">
+              重置参数
+            </button>
+          </div>
+
+          <!-- 1. 流式输出开关 -->
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-claude-text font-medium text-[11px]">流式打字输出 (Stream)</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="stream-toggle" onchange="onStreamToggleChange()" class="sr-only peer">
+              <div class="w-8 h-4 bg-claude-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-claude-border after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-claude-accent"></div>
+            </label>
+          </div>
+
+          <!-- 2. 温度 (Temperature) 调节 -->
+          <div class="space-y-1 pt-1 border-t border-claude-border/50">
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-claude-text font-medium">温度 (Temperature)</span>
+              <span id="label-val-temperature" class="font-mono text-claude-accent font-bold">0.2</span>
+            </div>
+            <input type="range" id="param-input-temperature" min="0" max="2" step="0.1" value="0.2" oninput="onModelParamChanged('temperature', this.value)" class="w-full accent-claude-accent cursor-pointer">
+            <div class="flex justify-between text-[9px] text-claude-muted">
+              <span>0.0 (严谨编程)</span>
+              <span>1.0 (均衡)</span>
+              <span>2.0 (创意发散)</span>
+            </div>
+          </div>
+
+          <!-- 3. 上下文消息轮数限制 -->
+          <div class="space-y-1 pt-1 border-t border-claude-border/50">
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-claude-text font-medium">读取上下文消息限制</span>
+              <span id="label-val-context" class="font-mono text-claude-accent font-bold">20 条</span>
+            </div>
+            <input type="range" id="param-input-context" min="4" max="50" step="2" value="20" oninput="onModelParamChanged('contextLimit', this.value)" class="w-full accent-claude-accent cursor-pointer">
+            <div class="flex justify-between text-[9px] text-claude-muted">
+              <span>4 条 (省Token)</span>
+              <span>20 条 (适中推荐)</span>
+              <span>50 条 (长记忆)</span>
+            </div>
+          </div>
+
+          <!-- 4. 最大 Token 数 (Max Tokens) 输入框 -->
+          <div class="space-y-1 pt-1 border-t border-claude-border/50">
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-claude-text font-medium">最大输出 Token 数</span>
+              <span class="text-[9px] text-claude-muted">留空则默认最大 (16384)</span>
+            </div>
+            <input type="number" id="param-input-maxtokens" oninput="onModelParamChanged('maxTokens', this.value)" placeholder="留空使用默认最大(16384)" class="w-full bg-claude-card border border-claude-border rounded-lg p-2 text-xs font-mono select-text focus:outline-none">
+          </div>
+
+        </div>
+
+        <!-- 搜索模型输入框 -->
+        <div>
+          <input type="text" id="model-search-input" oninput="filterModelList()" placeholder="搜索已保存的工作模型..." class="w-full bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none select-text">
+        </div>
+
+        <!-- 模型列表容器（分预设折叠栏形式展示） -->
+        <div id="model-select-list" class="max-h-[36vh] overflow-y-auto space-y-1.5 text-xs no-scrollbar py-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 弹窗：超详细 GitHub 仓库接入保姆级教程 ================= -->
+  <div id="git-detailed-tutorial-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-claude-card w-full max-w-md rounded-2xl border border-claude-border shadow-2xl p-4 flex flex-col max-h-[85vh]">
+      <div class="flex justify-between items-center border-b border-claude-border pb-3 flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold text-xs">Git</div>
+          <span class="font-bold text-sm text-claude-text">GitHub 仓库超详细保姆级接入指南</span>
+        </div>
+        <button onclick="closeModal('git-detailed-tutorial-modal')" class="p-1 text-claude-muted hover:text-claude-text">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
       </div>
 
-      <!-- 搜索模型输入框 -->
-      <div>
-        <input type="text" id="model-search-input" oninput="filterModelList()" placeholder="搜索已保存的工作模型..." class="w-full bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none select-text">
+      <div class="flex-1 overflow-y-auto py-3 space-y-3.5 text-xs leading-relaxed text-claude-text no-scrollbar select-text">
+        
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] space-y-1">
+          <p class="font-bold">💡 核心原理：</p>
+          <p>Spring Code 是纯前端本地运行的 IDE。它通过官方提供的 GitHub REST API 直接与你的代码仓库进行安全加密通信，无需经过任何第三方中转服务器，数据绝对私密安全。</p>
+        </div>
+
+        <!-- 步骤 1 -->
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-xs text-claude-accent flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-claude-accent text-white flex items-center justify-center text-[10px]">1</span>
+            获取 Personal Access Token (PAT 密钥)
+          </h4>
+          <ol class="list-decimal list-inside space-y-1 text-claude-muted text-[11px] pl-1">
+            <li>在手机浏览器中打开并登录 <code class="text-claude-text bg-claude-bg px-1 rounded">https://github.com</code>。</li>
+            <li>点击右上角个人头像 ➔ <strong class="text-claude-text">Settings</strong>（设置）。</li>
+            <li>在设置页面的最底部，点击左侧菜单栏的 <strong class="text-claude-text">Developer Settings</strong>（开发者设置）。</li>
+            <li>点击 <strong class="text-claude-text">Personal access tokens</strong> ➔ 选择 <strong class="text-emerald-700 font-bold">Tokens (classic)</strong>（强烈推荐使用经典款，兼容性最佳）。</li>
+            <li>点击 <strong class="text-claude-text">Generate new token</strong> ➔ <strong class="text-claude-text">Generate new token (classic)</strong>。</li>
+            <li><strong>Note（说明）</strong>：任意填写，如 <code class="text-claude-text bg-claude-bg px-1 rounded">SpringCode</code>。</li>
+            <li><strong>Expiration（有效期）</strong>：可选择 <code class="text-claude-text bg-claude-bg px-1 rounded">No expiration</code>（无期限）或 90 天。</li>
+            <li><strong class="text-red-600">最重要权限勾选</strong>：在 Select scopes 列表中，勾选第一个大的 <strong class="text-red-600 underline">repo</strong> 复选框（这会自动勾选 repo:status, repo_deployment, public_repo 等所有代码读写权限）。</li>
+            <li>滑到最底部点击绿色的 <strong class="text-claude-text">Generate token</strong> 按钮。</li>
+            <li><strong>生成后立即复制</strong>以 <code class="text-emerald-700 font-mono font-bold">ghp_</code> 开头的一长串密钥并粘贴到 Spring Code 的 Token 输入框（注意：GitHub 只展示一次，关掉就看不到了）。</li>
+          </ol>
+        </div>
+
+        <!-- 步骤 2 -->
+        <div class="space-y-1.5 pt-1 border-t border-claude-border">
+          <h4 class="font-bold text-xs text-claude-accent flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-claude-accent text-white flex items-center justify-center text-[10px]">2</span>
+            项目仓库全称填写规范
+          </h4>
+          <div class="space-y-1 text-claude-muted text-[11px] pl-1">
+            <p>仓库全称必须是严格的 <strong class="text-claude-text font-mono">拥有者/仓库名</strong> 格式，严禁带有 <code class="text-red-500">https://github.com/</code> 或 <code class="text-red-500">.git</code>。</p>
+            <div class="p-2 bg-claude-bg border border-claude-border rounded-lg font-mono text-[10px] space-y-0.5">
+              <p class="text-claude-success">✔ 正确示例：zhangsan/my-web-project</p>
+              <p class="text-claude-success">✔ 正确示例：alibaba/vue-admin</p>
+              <p class="text-red-500">✖ 错误示例：https://github.com/zhangsan/my-project</p>
+              <p class="text-red-500">✖ 错误示例：my-web-project (缺少用户名)</p>
+            </div>
+            <p class="text-[10px] pt-0.5">你也可以点击本工具中的“<strong class="text-claude-accent">在线拉取我加入的合作与私密仓库</strong>”，系统将自动为你一键拉出你名下的所有仓库供直接选择。</p>
+          </div>
+        </div>
+
+        <!-- 步骤 3 -->
+        <div class="space-y-1.5 pt-1 border-t border-claude-border">
+          <h4 class="font-bold text-xs text-claude-accent flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-claude-accent text-white flex items-center justify-center text-[10px]">3</span>
+            分支 (Branch) 确认
+          </h4>
+          <p class="text-claude-muted text-[11px] pl-1">
+            目前 GitHub 新建仓库默认主分支多为 <code class="text-claude-text bg-claude-bg px-1 rounded">main</code>，较老仓库可能为 <code class="text-claude-text bg-claude-bg px-1 rounded">master</code>。请确认与你的 GitHub 仓库主分支名保持完全一致。
+          </p>
+        </div>
+
+        <!-- 步骤 4 -->
+        <div class="space-y-1.5 pt-1 border-t border-claude-border">
+          <h4 class="font-bold text-xs text-red-500 flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px]">4</span>
+            常见报错与快速排查自愈手册
+          </h4>
+          <div class="space-y-1.5 text-[11px] pl-1">
+            <div class="p-2 bg-red-50/70 border border-red-200 rounded-lg">
+              <strong class="text-red-700">1. 报 401 Unauthorized：</strong>
+              <p class="text-red-600/90 text-[10px]">说明 Token 输错或已过期失效，请重新生成 Classic Token (ghp_) 复制填入。</p>
+            </div>
+            <div class="p-2 bg-red-50/70 border border-red-200 rounded-lg">
+              <strong class="text-red-700">2. 报 404 Not Found：</strong>
+              <p class="text-red-600/90 text-[10px]">① 检查仓库名称是否写错；② 仓库如果不是空仓库请先在 GitHub 建立初始化 README；③ 你的 Token 缺少 repo 权限导致私有仓库无权读取。</p>
+            </div>
+            <div class="p-2 bg-red-50/70 border border-red-200 rounded-lg">
+              <strong class="text-red-700">3. 报 403 Resource not accessible by personal access token：</strong>
+              <p class="text-red-600/90 text-[10px]">使用了细粒度 Token (Fine-grained) 却没有开启 Contents 的 Read and write 权限。请直接换用 Classic Token 即可秒解决！</p>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- 模型列表容器（分预设折叠栏形式展示） -->
-      <div id="model-select-list" class="max-h-[60vh] overflow-y-auto space-y-1.5 text-xs no-scrollbar py-1"></div>
+      <div class="pt-3 border-t border-claude-border flex justify-end flex-shrink-0">
+        <button onclick="closeModal('git-detailed-tutorial-modal')" class="w-full py-2 bg-claude-accent text-white rounded-xl text-xs font-semibold active:bg-claude-accentHover">
+          我已清楚，返回配置
+        </button>
+      </div>
     </div>
   </div>
 
@@ -938,6 +1099,11 @@
         }
       ],
       currentPresetId: 'preset_default',
+      modelParams: {
+        temperature: 0.2,
+        contextLimit: 20,
+        maxTokens: ''
+      },
       promptPresets: [
         {
           id: 'prompt_default',
@@ -1005,6 +1171,12 @@
       if (savedStream !== null && savedStream !== undefined) state.streamOutput = savedStream.val;
       document.getElementById('stream-toggle').checked = state.streamOutput;
 
+      const savedModelParams = await storage.get('settings', 'model_params');
+      if (savedModelParams && savedModelParams.val) {
+        state.modelParams = { ...state.modelParams, ...savedModelParams.val };
+      }
+      syncModelParamsUI();
+
       const savedPromptPresets = await storage.get('settings', 'prompt_presets');
       if (savedPromptPresets && Array.isArray(savedPromptPresets.val) && savedPromptPresets.val.length > 0) {
         state.promptPresets = savedPromptPresets.val;
@@ -1066,15 +1238,28 @@
       }
     }
 
-    // 设置中心分板块交互控制 (完全禁止 emoji，纯字卡切换)
+    // 打开详细教程弹窗
+    function openGitDetailedTutorialModal() {
+      openModal('git-detailed-tutorial-modal');
+    }
+
+    // 设置中心分板块交互控制 (接口与仓库已同屏合一)
     function switchSettingsSection(sectionKey) {
-      const tabs = ['ai', 'git', 'prompt', 'data', 'disclaimer'];
+      // 兼容跳转到 git 时自动滚到 git 卡片
+      let actualKey = sectionKey;
+      let scrollToGit = false;
+      if (sectionKey === 'git') {
+        actualKey = 'ai';
+        scrollToGit = true;
+      }
+
+      const tabs = ['ai', 'prompt', 'data', 'disclaimer'];
       tabs.forEach(tab => {
         const tabBtn = document.getElementById(`set-tab-${tab}`);
         const panel = document.getElementById(`section-settings-${tab}`);
         if (!tabBtn || !panel) return;
 
-        if (tab === sectionKey) {
+        if (tab === actualKey) {
           tabBtn.className = 'py-3 px-3 text-xs font-semibold text-claude-accent border-b-2 border-claude-accent flex items-center gap-1.5 whitespace-nowrap';
           panel.classList.remove('hidden');
         } else {
@@ -1082,9 +1267,60 @@
           panel.classList.add('hidden');
         }
       });
-      if (sectionKey === 'data') {
+
+      if (scrollToGit) {
+        setTimeout(() => {
+          const el = document.getElementById('section-settings-git-anchor');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+
+      if (actualKey === 'data') {
         renderStorageMemoryAnalytics();
       }
+    }
+
+    // 模型超参数同步与管理
+    function syncModelParamsUI() {
+      const p = state.modelParams || { temperature: 0.2, contextLimit: 20, maxTokens: '' };
+      const tempInput = document.getElementById('param-input-temperature');
+      const tempLabel = document.getElementById('label-val-temperature');
+      const ctxInput = document.getElementById('param-input-context');
+      const ctxLabel = document.getElementById('label-val-context');
+      const maxTokInput = document.getElementById('param-input-maxtokens');
+
+      if (tempInput) tempInput.value = p.temperature;
+      if (tempLabel) tempLabel.innerText = p.temperature;
+      if (ctxInput) ctxInput.value = p.contextLimit;
+      if (ctxLabel) ctxLabel.innerText = `${p.contextLimit} 条`;
+      if (maxTokInput) maxTokInput.value = p.maxTokens || '';
+    }
+
+    function onModelParamChanged(key, val) {
+      if (!state.modelParams) state.modelParams = {};
+      if (key === 'temperature') {
+        state.modelParams.temperature = parseFloat(val);
+        const l = document.getElementById('label-val-temperature');
+        if (l) l.innerText = state.modelParams.temperature;
+      } else if (key === 'contextLimit') {
+        state.modelParams.contextLimit = parseInt(val);
+        const l = document.getElementById('label-val-context');
+        if (l) l.innerText = `${state.modelParams.contextLimit} 条`;
+      } else if (key === 'maxTokens') {
+        state.modelParams.maxTokens = val.trim();
+      }
+      storage.set('settings', { key: 'model_params', val: state.modelParams });
+    }
+
+    function resetModelParametersToDefault() {
+      state.modelParams = {
+        temperature: 0.2,
+        contextLimit: 20,
+        maxTokens: ''
+      };
+      storage.set('settings', { key: 'model_params', val: state.modelParams });
+      syncModelParamsUI();
+      alert('已成功重置！温度: 0.2，上下文限制: 20条，最大Token: 默认最大(16384)。');
     }
 
     // 内存数据树状/分布柱统计计算
@@ -2580,10 +2816,23 @@
       try {
         const finalSystemPrompt = state.customPrompt || DEFAULT_SYSTEM_PROMPT;
 
-        // 完整保留历史消息代码，杜绝将代码误清空为汉字提示
+        // 动态读取用户设定的超参数：上下文轮数限制、温度、最大Token
+        const currentLimit = (state.modelParams?.contextLimit && state.modelParams.contextLimit > 0)
+          ? state.modelParams.contextLimit
+          : 20;
+        const currentTemperature = (state.modelParams?.temperature !== undefined)
+          ? Number(state.modelParams.temperature)
+          : 0.2;
+        const currentMaxTokens = (state.modelParams?.maxTokens && parseInt(state.modelParams.maxTokens) > 0)
+          ? parseInt(state.modelParams.maxTokens)
+          : 16384;
+
+        // 根据上下文限制，精准截取最近 N 条消息，杜绝巨额幽灵 Token 并提升响应速度
+        const slicedHistory = state.messages.slice(-currentLimit);
+
         const messagesToSend = [
           { role: 'system', content: finalSystemPrompt },
-          ...state.messages.map(m => ({
+          ...slicedHistory.map(m => ({
             role: m.role,
             content: m.role === 'user' ? m.apiContent : (m.cleanText || m.content)
           }))
@@ -2596,7 +2845,7 @@
         let activeDom = null;
 
         if (state.streamOutput) {
-          // ================= 流式输出处理 (适配聚合中转站：显式声明充足额度并健全粘包解析) =================
+          // ================= 流式输出处理 (使用用户自设定的超参数) =================
           const response = await fetch(`${curPreset.baseUrl}/chat/completions`, {
             method: 'POST',
             headers: {
@@ -2607,9 +2856,8 @@
               model: curPreset.model,
               messages: messagesToSend,
               stream: true,
-              // 关键修复：向 huihuiyun 等聚合中转站显式声明充足的输出窗口，防止网关使用默认抠门几百 Token 强掐
-              max_tokens: 16384,
-              temperature: 0.2
+              max_tokens: currentMaxTokens,
+              temperature: currentTemperature
             })
           });
 
@@ -2763,7 +3011,7 @@
             }
           }
         } else {
-          // ================= 非流式输出处理 (显式声明充足额度) =================
+          // ================= 非流式输出处理 (使用用户自设定的超参数) =================
           const response = await fetch(`${curPreset.baseUrl}/chat/completions`, {
             method: 'POST',
             headers: {
@@ -2773,8 +3021,8 @@
             body: JSON.stringify({
               model: curPreset.model,
               messages: messagesToSend,
-              max_tokens: 16384,
-              temperature: 0.2
+              max_tokens: currentMaxTokens,
+              temperature: currentTemperature
             })
           });
 
