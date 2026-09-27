@@ -1186,13 +1186,9 @@
         const reader = new FileReader();
         reader.onload = (event) => {
           const path = file.webkitRelativePath || file.name;
-          state.loadedFilesMap[path] = {
-            path: path,
-            sha: null,
-            content: event.target.result,
-            isLocal: true,
-            lastUpdated: Date.now()
-          };
+          const content = event.target.result;
+          // 深度录入右侧抽屉档案与多版本时间轴中，支持回退与随时查看最新代码
+          recordFileToRightSidebar(path, content, '本地导入', null, true);
           state.selectedPaths.add(path);
           importCount++;
           if (importCount === files.length) {
@@ -1208,7 +1204,8 @@
 
             renderSelectedFileChips();
             updateBatchActionBar();
-            alert(`已成功导入本地文件/项目 [${projectName}]，共 ${files.length} 个文件，与 Git 仓库独立共存！`);
+            saveCurrentConversation();
+            alert(`已成功导入本地文件/项目 [${projectName}]，共 ${files.length} 个文件，已归档入侧边栏并支持实时修改与版本回退！`);
           }
         };
         reader.readAsText(file);
@@ -1689,10 +1686,18 @@
               <svg class="w-3.5 h-3.5 text-claude-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               <span class="font-mono text-xs font-semibold text-claude-text truncate" title="${filePath}">${filePath}</span>
             </div>
-            <span class="text-[10px] font-mono text-claude-muted ml-2">${versions.length}个版本</span>
+            <div class="flex items-center gap-1">
+              <button onclick="downloadCurrentFile('${filePath}')" class="px-1.5 py-0.5 text-[10px] bg-claude-card border border-claude-border rounded text-claude-text hover:text-claude-accent flex items-center gap-0.5" title="下载最新修改后的代码文件">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                下载
+              </button>
+            </div>
           </div>
           <div class="p-3 bg-claude-card space-y-1">
-            <div class="text-[10px] font-semibold text-claude-muted mb-1.5">版本时间轴 (点击可快速回退)</div>
+            <div class="flex items-center justify-between text-[10px] font-semibold text-claude-muted mb-1.5">
+              <span>版本时间轴 (点击可快速回退)</span>
+              <span class="font-mono text-claude-accent">${versions.length} 次更新</span>
+            </div>
             ${timelineHtml}
           </div>
         `;
@@ -2971,83 +2976,70 @@
             continue;
           }
 
-          // 2. 推送代码阶段
+          // 2. 推送代码阶段（本地导入的文件若配置了 Git 也将直接推送到远端仓库）
           try {
-            if (isLocalFile) {
-              state.loadedFilesMap[filePath].content = updatedContent;
-              state.loadedFilesMap[filePath].lastUpdated = Date.now();
-              syncUpdatedFileToConversationContext(filePath, updatedContent);
-              renderLocalFilesTree();
-              renderSelectedFileChips();
-              logDiv.innerHTML += `
-                <div class="text-blue-600 flex items-center gap-1 font-mono font-bold">
-                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                  本地文件已同步生效: ${filePath}
-                </div>
-              `;
-              pushSuccessCount++;
-            } else {
-              const cleanPath = filePath.replace(/^\/+/, '');
-              let currentSha = fileObj.sha;
-              try {
-                const headRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${cleanPath}?ref=${state.git.branch}`, {
-                  headers: {
-                    'Authorization': `Bearer ${state.git.token}`,
-                    'Accept': 'application/vnd.github+json',
-                    'X-GitHub-Api-Version': '2022-11-28'
-                  }
-                });
-                if (headRes.ok) {
-                  const headData = await headRes.json();
-                  currentSha = headData.sha;
-                }
-              } catch(e) {}
-
-              const base64Content = btoa(unescape(encodeURIComponent(updatedContent)));
-              const putBody = {
-                message: `Patch update ${cleanPath} via mobile AI`,
-                content: base64Content,
-                branch: state.git.branch
-              };
-              if (currentSha) putBody.sha = currentSha;
-
-              const putRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${cleanPath}`, {
-                method: 'PUT',
+            const cleanPath = filePath.replace(/^\/+/, '');
+            let currentSha = fileObj.sha;
+            try {
+              const headRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${cleanPath}?ref=${state.git.branch}`, {
                 headers: {
                   'Authorization': `Bearer ${state.git.token}`,
-                  'Content-Type': 'application/json',
                   'Accept': 'application/vnd.github+json',
                   'X-GitHub-Api-Version': '2022-11-28'
-                },
-                body: JSON.stringify(putBody)
+                }
               });
-
-              if (!putRes.ok) {
-                let errText = `HTTP ${putRes.status}`;
-                try {
-                  const errJson = await putRes.json();
-                  if (errJson.message && errJson.message.includes('Resource not accessible by personal access token')) {
-                    errText = 'Token权限不足：此Fine-grained Token缺少Contents的Read and write写权限，或建议换用Classic Token(ghp_)';
-                  } else {
-                    errText = errJson.message || errText;
-                  }
-                } catch(e) {}
-                throw new Error(errText);
+              if (headRes.ok) {
+                const headData = await headRes.json();
+                currentSha = headData.sha;
               }
+            } catch(e) {}
 
-              const putData = await putRes.json();
-              state.loadedFilesMap[filePath] = { path: filePath, sha: putData.content?.sha || currentSha, content: updatedContent, isLocal: false };
-              syncUpdatedFileToConversationContext(filePath, updatedContent);
-              renderSelectedFileChips();
+            const base64Content = btoa(unescape(encodeURIComponent(updatedContent)));
+            const putBody = {
+              message: `Patch update ${cleanPath} via Spring Code`,
+              content: base64Content,
+              branch: state.git.branch
+            };
+            if (currentSha) putBody.sha = currentSha;
 
-              logDiv.innerHTML += `
-                <div class="text-claude-success flex items-center gap-1 font-mono font-bold">
-                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                  推送成功 [${cleanPath}] (Commit: ${putData.commit.sha.substring(0,7)})
-                </div>
-              `;
-              pushSuccessCount++;
+            const putRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${cleanPath}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${state.git.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+              },
+              body: JSON.stringify(putBody)
+            });
+
+            if (!putRes.ok) {
+              let errText = `HTTP ${putRes.status}`;
+              try {
+                const errJson = await putRes.json();
+                if (errJson.message && errJson.message.includes('Resource not accessible by personal access token')) {
+                  errText = 'Token权限不足：此Fine-grained Token缺少Contents的Read and write写权限，或建议换用Classic Token(ghp_)';
+                } else {
+                  errText = errJson.message || errText;
+                }
+              } catch(e) {}
+              throw new Error(errText);
             }
+
+            const putData = await putRes.json();
+            const newSha = putData.content?.sha || currentSha;
+            state.loadedFilesMap[filePath] = { path: filePath, sha: newSha, content: updatedContent, isLocal: false };
+            if (state.sessionFiles?.[filePath]) state.sessionFiles[filePath].sha = newSha;
+            syncUpdatedFileToConversationContext(filePath, updatedContent);
+            renderSelectedFileChips();
+
+            logDiv.innerHTML += `
+              <div class="text-claude-success flex items-center gap-1 font-mono font-bold">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                推送成功 [${cleanPath}] (Commit: ${putData.commit.sha.substring(0,7)})
+              </div>
+            `;
+            pushSuccessCount++;
           } catch (pushErr) {
             hasError = true;
             logDiv.innerHTML += `
@@ -3059,8 +3051,10 @@
           }
         }
       } finally {
+        let finalTitle = '推送流程已全部完成';
         titleDiv.className = 'font-medium text-claude-text flex items-center gap-1.5';
         if (hasError && pushSuccessCount === 0) {
+          finalTitle = '推送流程失败';
           titleDiv.innerHTML = `
             <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="text-red-500 font-bold">推送流程失败</span>
@@ -3071,6 +3065,18 @@
             <span class="text-claude-success font-bold">推送流程已全部完成</span>
           `;
         }
+
+        // 核心修复：将修改与推送的最终状态作为 pipeline_log 存入 messages 并永久持久化到 IndexedDB！
+        // 这样无论是刷新页面、切换会话，还是以后回顾检查，都能完整看到历史推送结果！
+        state.messages.push({
+          role: 'pipeline_log',
+          title: finalTitle,
+          hasError: hasError,
+          pushSuccessCount: pushSuccessCount,
+          htmlLog: logDiv.innerHTML,
+          time: getFormattedTime()
+        });
+        await saveCurrentConversation();
       }
 
       const vp = document.getElementById('chat-viewport');
@@ -3408,19 +3414,27 @@
       e.target.value = '';
     }
 
-    // 下载文件到手机本地
+    // 下载文件到手机本地（优先读取会话侧边栏最新修改后的代码）
     function downloadCurrentFile(path) {
-      const fileObj = state.loadedFilesMap[path];
-      if (!fileObj || !fileObj.content) {
-        return alert('该文件内容暂未缓存在本地，请先批量载入或拉取。');
+      let content = null;
+      if (state.sessionFiles && state.sessionFiles[path] && state.sessionFiles[path].currentContent) {
+        content = state.sessionFiles[path].currentContent;
+      } else if (state.loadedFilesMap[path] && state.loadedFilesMap[path].content) {
+        content = state.loadedFilesMap[path].content;
       }
-      const blob = new Blob([fileObj.content], { type: 'text/plain;charset=utf-8' });
+      if (!content) {
+        return alert('该文件内容暂未加载到本地，请先载入后再下载。');
+      }
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = path.split('/').pop() || 'download.txt';
       document.body.appendChild(a);
       a.click();
-      a.remove();
+      setTimeout(() => {
+        URL.revokeObjectURL(a.href);
+        a.remove();
+      }, 1000);
     }
 
     // HTML 实时网页效果全屏预览
@@ -3507,6 +3521,31 @@
       location.reload();
     }
 
+    // 渲染持久化推送日志卡片
+    function renderPipelineLogDOM(msgObj, index = null) {
+      const stream = document.getElementById('chat-stream');
+      const banner = document.createElement('div');
+      banner.className = 'w-full my-2 bg-claude-sidebar border border-claude-border rounded-xl p-3 text-xs space-y-1.5 shadow-2xs transition-all';
+      
+      const hasError = msgObj.hasError;
+      const titleIcon = hasError && msgObj.pushSuccessCount === 0
+        ? `<svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="text-red-500 font-bold">${escapeHtml(msgObj.title || '推送流程失败')}</span>`
+        : `<svg class="w-4 h-4 text-claude-success flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="text-claude-success font-bold">${escapeHtml(msgObj.title || '推送流程已全部完成')}</span>`;
+
+      banner.innerHTML = `
+        <div class="flex items-center justify-between pb-1 border-b border-claude-border/60">
+          <div class="flex items-center gap-1.5 font-medium">${titleIcon}</div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono text-claude-muted">${escapeHtml(msgObj.time || '')}</span>
+            ${index !== null ? `<button onclick="deleteSingleMessage(${index})" class="text-claude-muted hover:text-red-500 text-[10px]" title="删除此记录">✕</button>` : ''}
+          </div>
+        </div>
+        <div class="text-[11px] text-claude-muted space-y-1 pt-1">${msgObj.htmlLog || ''}</div>
+      `;
+      stream.appendChild(banner);
+      return banner;
+    }
+
     function rebuildChatStreamDOM() {
       const stream = document.getElementById('chat-stream');
       if (!stream) return;
@@ -3514,6 +3553,8 @@
       state.messages.forEach((m, idx) => {
         if (m.role === 'user') {
           renderUserMessageDOM(m.displayObj, m.time, idx);
+        } else if (m.role === 'pipeline_log') {
+          renderPipelineLogDOM(m, idx);
         } else {
           renderAssistantMessageDOM({
             cleanText: m.cleanText || m.content,
