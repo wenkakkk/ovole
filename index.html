@@ -2987,10 +2987,15 @@
               `;
               pushSuccessCount++;
             } else {
+              const cleanPath = filePath.replace(/^\/+/, '');
               let currentSha = fileObj.sha;
               try {
-                const headRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}?ref=${state.git.branch}`, {
-                  headers: { 'Authorization': `Bearer ${state.git.token}` }
+                const headRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${cleanPath}?ref=${state.git.branch}`, {
+                  headers: {
+                    'Authorization': `Bearer ${state.git.token}`,
+                    'Accept': 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28'
+                  }
                 });
                 if (headRes.ok) {
                   const headData = await headRes.json();
@@ -3000,17 +3005,19 @@
 
               const base64Content = btoa(unescape(encodeURIComponent(updatedContent)));
               const putBody = {
-                message: `Patch update ${filePath} via mobile AI`,
+                message: `Patch update ${cleanPath} via mobile AI`,
                 content: base64Content,
                 branch: state.git.branch
               };
               if (currentSha) putBody.sha = currentSha;
 
-              const putRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}`, {
+              const putRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${cleanPath}`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${state.git.token}`,
-                  'Content-Type': 'application/json'
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28'
                 },
                 body: JSON.stringify(putBody)
               });
@@ -3019,7 +3026,11 @@
                 let errText = `HTTP ${putRes.status}`;
                 try {
                   const errJson = await putRes.json();
-                  errText = errJson.message || errText;
+                  if (errJson.message && errJson.message.includes('Resource not accessible by personal access token')) {
+                    errText = 'Token权限不足：此Fine-grained Token缺少Contents的Read and write写权限，或建议换用Classic Token(ghp_)';
+                  } else {
+                    errText = errJson.message || errText;
+                  }
                 } catch(e) {}
                 throw new Error(errText);
               }
@@ -3032,7 +3043,7 @@
               logDiv.innerHTML += `
                 <div class="text-claude-success flex items-center gap-1 font-mono font-bold">
                   <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                  推送成功 [${filePath}] (Commit: ${putData.commit.sha.substring(0,7)})
+                  推送成功 [${cleanPath}] (Commit: ${putData.commit.sha.substring(0,7)})
                 </div>
               `;
               pushSuccessCount++;
