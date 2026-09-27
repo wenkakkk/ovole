@@ -318,7 +318,7 @@
                             私信
                         </div>
                         <div class="btn-action">
-                            <img src="https://i.postimg.cc/tTxDm0qF/1000049268-compressed.webp" style="width: 25px; height: 25px; object-fit: contain;"> 升级
+                            <img src="https://i.postimg.cc/tTxDm0qF/1000049268-compressed.webp" style="width: 20px; height: 20px; object-fit: contain;"> 升级
                         </div>
                         <div class="btn-action icon-only" id="btn-app-settings-bottom" style="cursor: pointer;">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -1196,6 +1196,18 @@
                 </div>
             </div>
 
+            <!-- 年度记录卡片入口 -->
+            <div class="card-box icity-calendar-annual-entry-card" id="btn-calendar-annual-card" style="margin: 8px 6px 0 6px; padding: 12px 14px; background: var(--white); display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px; line-height: 1;">🎞️</span>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 700; color: var(--text-main);" id="calendar-annual-card-title">2026 年度记录</div>
+                        <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">查看年度总结报告、日志与足迹...</div>
+                    </div>
+                </div>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-light);"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+
             <main class="content-scroll" style="padding-top: 8px;" id="calendar-feed">
                 <!-- 动态渲染日历 -->
             </main>
@@ -1485,9 +1497,9 @@
                 </div>
             </header>
 
-            <main class="content-scroll" style="padding: 10px 8px 80px 8px; box-sizing: border-box;">
+            <main class="content-scroll" style="padding: 8px 0 60px 0;">
                 <!-- 顶部市民身份预览卡片 -->
-                <div class="title-preview-header">
+                <div class="card-box title-preview-header">
                     <div class="title-preview-avatar sync-avatar" id="title-preview-avatar"></div>
                     <div class="title-preview-info">
                         <div class="title-preview-name-row">
@@ -1499,23 +1511,23 @@
                 </div>
 
                 <!-- 1. 选择背景颜色卡片 -->
-                <div class="title-card-section">
+                <div class="card-box title-card-section">
                     <div class="title-group-subtitle">称号背景颜色</div>
                     <div class="title-color-palette" id="title-color-palette"></div>
                 </div>
 
                 <!-- 2. 选择市民称号卡片群 -->
-                <div class="title-card-section">
+                <div class="card-box title-card-section">
                     <div class="title-group-subtitle">特定称号</div>
                     <div class="title-chips-grid" id="title-chips-specific"></div>
                 </div>
 
-                <div class="title-card-section">
+                <div class="card-box title-card-section">
                     <div class="title-group-subtitle">成就称号 <span style="font-size: 11px; font-weight: normal; color: var(--text-light);">（达成对应市民成就解锁）</span></div>
                     <div class="title-chips-grid" id="title-chips-achievements"></div>
                 </div>
 
-                <div class="title-card-section">
+                <div class="card-box title-card-section">
                     <div class="title-group-subtitle">心情状态</div>
                     <div class="title-chips-grid" id="title-chips-moods"></div>
                 </div>
@@ -1620,6 +1632,9 @@
                                 <path d="M4.0625 1.25H12.5v12.5H4.0625A1.5625 1.5625 0 0 1 2.5 12.1875v-9.375A1.5625 1.5625 0 0 1 4.0625 1.25z" stroke-width="1"></path>
                             </svg>
                             <span class="display-diary"></span>
+                        </div>
+                        <div class="tool-icon btn-ai-draft-action" style="cursor: pointer; padding: 2px 8px; border-radius: 12px; background: rgba(74, 144, 226, 0.1); color: var(--theme-blue); font-size: 11px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;">
+                            <span>AI 整理成草稿</span>
                         </div>
                     </div>
                     <div class="editor-actions">
@@ -6312,16 +6327,22 @@
 
     function updateIcityDiaryDateControl(control) {
         if (!control) return;
+        control.hidden = true;
+        control.style.display = 'none';
+        const editor = control.closest('.editor-wrapper');
+        const textarea = editor?.querySelector('.editor-textarea');
+        if (!textarea) return;
         const isCalendarDraft = control.dataset.calendarDraft === 'true';
-        control.hidden = !isCalendarDraft;
-        if (!isCalendarDraft) return;
+        if (!isCalendarDraft) {
+            textarea.placeholder = '写点什么吧';
+            return;
+        }
         const dateInput = control.querySelector('.icity-retroactive-date');
-        const label = control.querySelector('.icity-calendar-draft-label');
-        if (dateInput && label) {
+        if (dateInput && dateInput.value) {
             const parts = dateInput.value.split('-').map(Number);
-            label.textContent = parts.length === 3 && parts.every(Number.isFinite)
-                ? '补写至 ' + parts[0] + '年' + parts[1] + '月' + parts[2] + '日'
-                : '补写日记';
+            textarea.placeholder = (parts.length === 3 && parts.every(Number.isFinite))
+                ? `补写 ${parts[0]}年${parts[1]}月${parts[2]}日`
+                : '补写日记...';
         }
     }
 
@@ -6334,18 +6355,18 @@
 
         control = document.createElement('div');
         control.className = 'icity-diary-date-control';
+        control.style.display = 'none'; // 彻底隐藏外显条，由 placeholder 表达
         control.hidden = true;
-        control.innerHTML = '<div class="icity-calendar-draft-date"><span class="icity-calendar-draft-icon">🗓️</span><span class="icity-calendar-draft-label">补写日记</span><span class="icity-calendar-draft-hint">日期来自日历</span></div>' +
-            '<input type="date" class="icity-retroactive-date" aria-hidden="true" tabindex="-1">' +
-            '<input type="time" class="icity-retroactive-time" aria-hidden="true" tabindex="-1">' +
-            '<button type="button" class="icity-diary-draft-button">AI 整理成草稿</button>';
+        control.innerHTML = '<input type="date" class="icity-retroactive-date" aria-hidden="true" tabindex="-1">' +
+            '<input type="time" class="icity-retroactive-time" aria-hidden="true" tabindex="-1">';
         textarea.insertAdjacentElement('afterend', control);
         setIcityDiaryDateInputs(control, Date.now());
-        updateIcityDiaryDateControl(control);
 
-        const draftButton = control.querySelector('.icity-diary-draft-button');
-        if (draftButton) {
-            draftButton.addEventListener('click', async event => {
+        // 为编辑器底栏的 .btn-ai-draft-action 绑定 AI 整理功能
+        const aiDraftBtn = editor.querySelector('.btn-ai-draft-action');
+        if (aiDraftBtn && !aiDraftBtn.dataset.bound) {
+            aiDraftBtn.dataset.bound = 'true';
+            aiDraftBtn.addEventListener('click', async (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 const source = String(textarea.value || '').trim();
@@ -6353,9 +6374,9 @@
                     showIcityFeedback('先写一点日记素材，再整理成草稿');
                     return;
                 }
-                draftButton.disabled = true;
-                const previousText = draftButton.textContent;
-                draftButton.textContent = '整理中…';
+                const originalText = aiDraftBtn.innerHTML;
+                aiDraftBtn.innerHTML = '<span>整理中…</span>';
+                aiDraftBtn.style.opacity = '0.6';
                 try {
                     const api = await getConnectedIcityApi();
                     const prompt = [
@@ -6373,13 +6394,12 @@
                     if (!draft) throw new Error('AI 没有返回可用的日记草稿');
                     textarea.value = draft;
                     textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                    if (typeof showIcityQaToast === 'function') showIcityQaToast('已整理为草稿，请确认后再发布');
-                    else if (typeof window.showToast === 'function') window.showToast('已整理为草稿，请确认后再发布');
+                    if (typeof window.showToast === 'function') window.showToast('已整理为草稿，请确认后再发布');
                 } catch (error) {
                     showIcityFeedback(error?.message || '日记草稿整理失败');
                 } finally {
-                    draftButton.disabled = false;
-                    draftButton.textContent = previousText;
+                    aiDraftBtn.innerHTML = originalText;
+                    aiDraftBtn.style.opacity = '1';
                 }
             });
         }
@@ -6465,6 +6485,9 @@
             control.dataset.calendarDraft = 'true';
             setIcityDiaryDateInputs(control, selectedAt);
             updateIcityDiaryDateControl(control);
+        }
+        if (textarea) {
+            textarea.placeholder = `补写 ${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日`;
         }
         modal.classList.add('active');
         setTimeout(() => textarea?.focus(), 80);
@@ -9031,6 +9054,8 @@
         renderIcityMonthlyFields(record);
         panel.style.display = 'block';
         if (calendarFeed) calendarFeed.style.display = 'none';
+        const annualCardBtn = $('#btn-calendar-annual-card');
+        if (annualCardBtn) annualCardBtn.style.display = 'none';
     }
 
     async function openIcityMonthlyRecord(monthKey) {
@@ -9089,6 +9114,13 @@
 
     async function renderCalendar(targetYear) {
         if (calCurrentYearDisplay) calCurrentYearDisplay.textContent = targetYear;
+        const annualCardTitle = $('#calendar-annual-card-title');
+        if (annualCardTitle) annualCardTitle.textContent = `${targetYear} 年度记录`;
+        const annualCardBtn = $('#btn-calendar-annual-card');
+        if (annualCardBtn && !annualCardBtn.dataset.bound) {
+            annualCardBtn.dataset.bound = 'true';
+            bindIcityTap(annualCardBtn, () => openIcityAnnualReport(currentCalendarYear));
+        }
         const [feeds, records] = await Promise.all([getVisibleIcityFeeds(await getFeeds()), getIcityMonthlyRecords()]);
         const diaryDates = new Set();
         feeds.forEach(post => {
@@ -9156,6 +9188,8 @@
         if (annualPanel) annualPanel.style.display = 'none';
         const calendarYearSwitcher = viewCalendar?.querySelector('.calendar-year-switcher');
         if (calendarYearSwitcher) calendarYearSwitcher.style.display = 'flex';
+        const annualCardBtn = $('#btn-calendar-annual-card');
+        if (annualCardBtn) annualCardBtn.style.display = 'flex';
         setTimeout(() => {
             const viewCalendarEl = $('#view-calendar');
             const scrollContainer = viewCalendarEl?.querySelector('.content-scroll');
@@ -9171,6 +9205,8 @@
             const panel = $('#icity-monthly-record-panel');
             if (panel) panel.style.display = 'none';
             if (calendarFeed) calendarFeed.style.display = 'block';
+            const annualCardBtn = $('#btn-calendar-annual-card');
+            if (annualCardBtn) annualCardBtn.style.display = 'flex';
             await renderCalendar(currentCalendarYear);
         });
     }
@@ -9438,15 +9474,8 @@
     function ensureIcityAnnualReportControls() {
         if (!viewCalendar) return;
         const headerRight = viewCalendar.querySelector('.header-single-post .right-placeholder');
-        if (headerRight && !$('#btn-open-icity-annual-report')) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.id = 'btn-open-icity-annual-report';
-            button.className = 'icity-annual-report-open-button';
-            button.textContent = '年度回忆';
-            button.addEventListener('click', () => openIcityAnnualReport(currentCalendarYear));
-            headerRight.appendChild(button);
-        }
+        const legacyBtn = $('#btn-open-icity-annual-report');
+        if (legacyBtn) legacyBtn.remove();
         let panel = $('#icity-annual-report-panel');
         if (!panel) {
             panel = document.createElement('section');
@@ -9461,6 +9490,8 @@
             panel.querySelector('[data-annual-action="back"]').addEventListener('click', () => {
                 panel.style.display = 'none';
                 if (calendarFeed) calendarFeed.style.display = 'block';
+                const annualCard = $('#btn-calendar-annual-card');
+                if (annualCard) annualCard.style.display = 'flex';
                 renderCalendar(currentCalendarYear);
             });
             panel.querySelector('[data-annual-action="prev"]').addEventListener('click', () => {
@@ -9500,6 +9531,8 @@
         if (calendarFeed) calendarFeed.style.display = 'none';
         const calendarYearSwitcher = viewCalendar?.querySelector('.calendar-year-switcher');
         if (calendarYearSwitcher) calendarYearSwitcher.style.display = 'none';
+        const annualCard = $('#btn-calendar-annual-card');
+        if (annualCard) annualCard.style.display = 'none';
         if (panel) panel.style.display = 'block';
         await renderIcityAnnualReport(currentIcityAnnualReportYear);
     }
@@ -10979,12 +11012,12 @@
             const titlePill = $('[data-icity-badge-entry="titles"]');
             if (titlePill) {
                 if (selectedCitizenTitleText && selectedCitizenTitleText !== '无') {
-                    titlePill.innerHTML = escapeIcityHtml(selectedCitizenTitleText);
+                    titlePill.textContent = selectedCitizenTitleText;
                     titlePill.style.backgroundColor = selectedCitizenTitleColor;
                     titlePill.style.color = '#FFFFFF';
                     titlePill.style.borderColor = selectedCitizenTitleColor;
                 } else {
-                    titlePill.innerHTML = `<span style="color:#C7C7CC">+</span> 我的市民称号`;
+                    titlePill.textContent = '我的市民称号';
                     titlePill.style.backgroundColor = 'transparent';
                     titlePill.style.color = 'var(--text-sub)';
                     titlePill.style.borderColor = 'var(--border-color)';
@@ -11028,52 +11061,38 @@
     }
 
     function installIcityBadgeEntryDelegation() {
+        // 绑定头像下方的市民称号与勋章入口，确保只进全屏页面，严禁触发居中弹窗
         const titleTag = $('[data-icity-badge-entry="titles"]');
         if (titleTag && !titleTag.dataset.titleTapBound) {
             titleTag.dataset.titleTapBound = 'true';
             delete titleTag.dataset.icityBadgeTapBound;
-            bindIcityTap(titleTag, (e) => {
-                e.stopPropagation();
-                openCitizenTitlePage();
-            });
+            bindIcityTap(titleTag, openCitizenTitlePage);
         }
 
         const badgeTag = $('[data-icity-badge-entry="badges"]');
         if (badgeTag && !badgeTag.dataset.badgeTapBound) {
             badgeTag.dataset.badgeTapBound = 'true';
             delete badgeTag.dataset.icityBadgeTapBound;
-            bindIcityTap(badgeTag, (e) => {
-                e.stopPropagation();
-                openIcityBadgesPage();
-            });
+            bindIcityTap(badgeTag, openIcityBadgesPage);
         }
 
         $$('.settings-item[data-icity-open-badges]').forEach(el => {
             if (!el.dataset.icityBadgeOpenTap) {
                 el.dataset.icityBadgeOpenTap = 'true';
-                bindIcityTap(el, (e) => {
-                    e.stopPropagation();
-                    openIcityBadgesPage();
-                });
+                bindIcityTap(el, openIcityBadgesPage);
             }
         });
 
         const settingsTitleItem = findIcitySettingItem(viewSettings, 'iCity 市民称号');
         if (settingsTitleItem && !settingsTitleItem.dataset.titleOpenBound) {
             settingsTitleItem.dataset.titleOpenBound = 'true';
-            bindIcityTap(settingsTitleItem, (e) => {
-                e.stopPropagation();
-                openCitizenTitlePage();
-            });
+            bindIcityTap(settingsTitleItem, openCitizenTitlePage);
         }
 
         const appSettingsTitleItem = findIcitySettingItem(viewAppSettings, 'iCity 市民称号');
         if (appSettingsTitleItem && !appSettingsTitleItem.dataset.titleOpenBound) {
             appSettingsTitleItem.dataset.titleOpenBound = 'true';
-            bindIcityTap(appSettingsTitleItem, (e) => {
-                e.stopPropagation();
-                openCitizenTitlePage();
-            });
+            bindIcityTap(appSettingsTitleItem, openCitizenTitlePage);
         }
     }
 
@@ -11092,12 +11111,12 @@
             const currentTitleColor = profile?.citizenTitleColor || '#8AB4F8';
             if (titleEntry) {
                 if (currentTitleText && currentTitleText !== '无') {
-                    titleEntry.innerHTML = escapeIcityHtml(currentTitleText);
+                    titleEntry.textContent = currentTitleText;
                     titleEntry.style.backgroundColor = currentTitleColor;
                     titleEntry.style.color = '#FFFFFF';
                     titleEntry.style.borderColor = currentTitleColor;
                 } else {
-                    titleEntry.innerHTML = `<span style="color:#C7C7CC">+</span> 我的市民称号`;
+                    titleEntry.textContent = '我的市民称号';
                     titleEntry.style.backgroundColor = 'transparent';
                     titleEntry.style.color = 'var(--text-sub)';
                     titleEntry.style.borderColor = 'var(--border-color)';
@@ -11106,7 +11125,7 @@
         });
 
         if (badgeEntry) {
-            badgeEntry.innerHTML = badges.length ? escapeIcityHtml(badgeLabel) : '<span style="color:#C7C7CC">+</span> ' + escapeIcityHtml(badgeLabel);
+            badgeEntry.textContent = badges.length ? badgeLabel : '勋章';
             badgeEntry.classList.toggle('icity-badge-tag-active', Boolean(badges.length));
         }
 
@@ -11139,7 +11158,7 @@
             inline.innerHTML = (title ? '<span class="icity-inline-title">🏷️ ' + escapeIcityHtml(title.label) + '</span>' : '') +
                 wornBadges.map(item => '<span>' + item.icon + ' ' + escapeIcityHtml(item.label) + '</span>').join('');
             inline.style.display = title || wornBadges.length ? 'flex' : 'none';
-            inline.onclick = null;
+            bindIcityBadgeAction(inline, () => openIcityBadgeManager('badges'));
         });
     }
 
@@ -11252,59 +11271,19 @@
         const source = await getIcityBadgeSource();
         if (data.wornTitleId === title.id) {
             data.wornTitleId = '';
-            showIcityBadgeToast('已取下称号「' + title.label + '」');
+            showIcityBadgeToast(`已卸下称号：${title.label}`);
         } else {
             if (!title.rule(source)) {
                 showIcityBadgeToast('该称号尚未解锁');
                 return;
             }
             data.wornTitleId = title.id;
-            showIcityBadgeToast('已佩戴称号「' + title.label + '」');
-        }
-        await saveIcityBadgesData(data);
-        await refreshIcityBadgeUi();
-        const panel = $('#icity-badge-panel');
-        if (panel && panel.classList.contains('active')) {
-            await renderIcityBadgeManager();
-        }
-    }
-
-    async function toggleIcityBadge(badgeId) {
-        const badge = getIcityBadgeById(badgeId);
-        if (!badge) return;
-        const data = await getIcityBadgesData();
-        const source = await getIcityBadgeSource();
-        const recommendation = (data.aiRecommendations || []).some(item => item.id === badge.id);
-        const isWorn = data.wornBadgeIds.includes(badge.id);
-        if (isWorn) {
-            data.wornBadgeIds = data.wornBadgeIds.filter(id => id !== badge.id);
-            showIcityBadgeToast('已取下勋章「' + badge.label + '」');
-        } else {
-            if (!source.unlockedBadgeIds.includes(badge.id) && !recommendation) {
-                showIcityBadgeToast('该徽章尚未解锁，继续记录生活即可解锁');
-                return;
-            }
-            if (data.wornBadgeIds.length >= ICITY_BADGE_MAX_WORN) {
-                showIcityBadgeToast('最多同时佩戴 ' + ICITY_BADGE_MAX_WORN + ' 枚勋章');
-                return;
-            }
-            data.wornBadgeIds.push(badge.id);
-            showIcityBadgeToast('已佩戴勋章「' + badge.label + '」');
-        }
-        await saveIcityBadgesData(data);
-        await refreshIcityBadgeUi();
-        const panel = $('#icity-badge-panel');
-        if (panel && panel.classList.contains('active')) {
-            await renderIcityBadgeManager();
-        }
-    }
-            data.wornTitleId = title.id;
             showIcityBadgeToast(`已佩戴称号：${title.label}`);
         }
         await saveIcityBadgesData(data);
         await refreshIcityBadgeUi();
-        const panel = $('#icity-badge-panel');
-        if (panel && panel.classList.contains('active')) {
+        const modal = $('#icity-badge-panel');
+        if (modal && modal.classList.contains('active')) {
             await renderIcityBadgeManager();
         }
     }
@@ -11333,8 +11312,8 @@
         }
         await saveIcityBadgesData(data);
         await refreshIcityBadgeUi();
-        const panel = $('#icity-badge-panel');
-        if (panel && panel.classList.contains('active')) {
+        const modal = $('#icity-badge-panel');
+        if (modal && modal.classList.contains('active')) {
             await renderIcityBadgeManager();
         }
     }
@@ -12550,8 +12529,10 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.id = 'btn-icity-pdf-export-calendar';
-        button.className = 'icity-pdf-calendar-export-button';
-        button.textContent = '导出 PDF';
+        button.className = 'icity-calendar-icon-btn';
+        button.title = '导出 PDF';
+        button.setAttribute('aria-label', '导出 PDF');
+        button.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>';
         button.addEventListener('click', () => stage10OpenPdfExportPanel('year'));
         placeholder.appendChild(button);
     }
@@ -13238,8 +13219,10 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.id = 'btn-icity-video-export-calendar';
-        button.className = 'icity-video-calendar-export-button';
-        button.textContent = '制作影片';
+        button.className = 'icity-calendar-icon-btn';
+        button.title = '制作影片';
+        button.setAttribute('aria-label', '制作影片');
+        button.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>';
         button.addEventListener('click', () => stage11OpenVideoExportPanel('range'));
         actions.appendChild(button);
     }
