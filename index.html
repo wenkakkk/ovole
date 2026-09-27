@@ -1991,7 +1991,7 @@
       if (arrow) arrow.style.transform = 'rotate(180deg)';
 
       if (container) {
-        container.innerHTML = '<p class="text-[11px] text-claude-muted py-4 text-center animate-pulse">正在载入工程文件夹内容...</p>';
+        container.innerHTML = '<p class="text-[11px] text-claude-muted py-4 text-center animate-pulse">正在从 Git 获取最新文件与更新时间...</p>';
       }
 
       try {
@@ -2001,15 +2001,61 @@
         if (!res.ok) throw new Error('拉取失败，请检查仓库、分支或 Token 权限');
         const data = await res.json();
         
-        const filePaths = (data.tree || []).filter(i => i.type === 'blob').map(i => i.path);
-        const rootTree = buildDirectoryTree(filePaths);
+        const blobs = (data.tree || []).filter(i => i.type === 'blob');
+        const filePaths = blobs.map(i => i.path);
 
+        // 1. 对比远程 SHA：若在 Git 上有新上传（SHA 变化），清除本地旧缓存，确保拉取 Git 最新内容
+        blobs.forEach(item => {
+          const localItem = state.loadedFilesMap[item.path];
+          if (!localItem) {
+            state.loadedFilesMap[item.path] = {
+              path: item.path,
+              sha: item.sha,
+              content: null,
+              isLocal: false,
+              lastUpdated: null
+            };
+          } else if (localItem.sha !== item.sha) {
+            localItem.sha = item.sha;
+            localItem.content = null;
+            localItem.lastUpdated = null;
+          }
+        });
+
+        // 先渲染出树结构
+        const rootTree = buildDirectoryTree(filePaths);
         if (container) {
           container.innerHTML = '';
           container.appendChild(renderTreeNode(rootTree, 0));
         }
         updateBatchActionBar();
         updateStatusHeader();
+
+        // 2. 异步获取 Git 上各文件真实的最新提交/上传时间，并动态刷新侧边栏时间显示
+        Promise.all(blobs.map(async (item) => {
+          try {
+            const commitRes = await fetch(`https://api.github.com/repos/${state.git.repo}/commits?path=${encodeURIComponent(item.path)}&page=1&per_page=1&sha=${state.git.branch}`, {
+              headers: { 'Authorization': `Bearer ${state.git.token}` }
+            });
+            if (commitRes.ok) {
+              const commitData = await commitRes.json();
+              if (Array.isArray(commitData) && commitData.length > 0) {
+                const commitDate = commitData[0].commit?.committer?.date || commitData[0].commit?.author?.date;
+                if (commitDate) {
+                  state.loadedFilesMap[item.path].lastUpdated = new Date(commitDate).getTime();
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('获取文件Git时间失败:', item.path, e);
+          }
+        })).then(() => {
+          if (container) {
+            container.innerHTML = '';
+            container.appendChild(renderTreeNode(rootTree, 0));
+          }
+        });
+
       } catch (err) {
         if (container) {
           container.innerHTML = `<p class="text-xs text-red-500 py-3 text-center">拉取失败: ${err.message}</p>`;
