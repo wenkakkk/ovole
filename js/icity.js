@@ -318,7 +318,7 @@
                             私信
                         </div>
                         <div class="btn-action">
-                            <img src="https://i.postimg.cc/tTxDm0qF/1000049268-compressed.webp" style="width: 20px; height: 20px; object-fit: contain;"> 升级
+                            <img src="https://i.postimg.cc/tTxDm0qF/1000049268-compressed.webp" style="width: 25px; height: 25px; object-fit: contain;"> 升级
                         </div>
                         <div class="btn-action icon-only" id="btn-app-settings-bottom" style="cursor: pointer;">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -1485,9 +1485,9 @@
                 </div>
             </header>
 
-            <main class="content-scroll" style="padding: 8px 0 60px 0;">
+            <main class="content-scroll" style="padding: 10px 8px 80px 8px; box-sizing: border-box;">
                 <!-- 顶部市民身份预览卡片 -->
-                <div class="card-box title-preview-header">
+                <div class="title-preview-header">
                     <div class="title-preview-avatar sync-avatar" id="title-preview-avatar"></div>
                     <div class="title-preview-info">
                         <div class="title-preview-name-row">
@@ -1499,23 +1499,23 @@
                 </div>
 
                 <!-- 1. 选择背景颜色卡片 -->
-                <div class="card-box title-card-section">
+                <div class="title-card-section">
                     <div class="title-group-subtitle">称号背景颜色</div>
                     <div class="title-color-palette" id="title-color-palette"></div>
                 </div>
 
                 <!-- 2. 选择市民称号卡片群 -->
-                <div class="card-box title-card-section">
+                <div class="title-card-section">
                     <div class="title-group-subtitle">特定称号</div>
                     <div class="title-chips-grid" id="title-chips-specific"></div>
                 </div>
 
-                <div class="card-box title-card-section">
+                <div class="title-card-section">
                     <div class="title-group-subtitle">成就称号 <span style="font-size: 11px; font-weight: normal; color: var(--text-light);">（达成对应市民成就解锁）</span></div>
                     <div class="title-chips-grid" id="title-chips-achievements"></div>
                 </div>
 
-                <div class="card-box title-card-section">
+                <div class="title-card-section">
                     <div class="title-group-subtitle">心情状态</div>
                     <div class="title-chips-grid" id="title-chips-moods"></div>
                 </div>
@@ -11028,38 +11028,52 @@
     }
 
     function installIcityBadgeEntryDelegation() {
-        // 绑定头像下方的市民称号与勋章入口，确保只进全屏页面，严禁触发居中弹窗
         const titleTag = $('[data-icity-badge-entry="titles"]');
         if (titleTag && !titleTag.dataset.titleTapBound) {
             titleTag.dataset.titleTapBound = 'true';
             delete titleTag.dataset.icityBadgeTapBound;
-            bindIcityTap(titleTag, openCitizenTitlePage);
+            bindIcityTap(titleTag, (e) => {
+                e.stopPropagation();
+                openCitizenTitlePage();
+            });
         }
 
         const badgeTag = $('[data-icity-badge-entry="badges"]');
         if (badgeTag && !badgeTag.dataset.badgeTapBound) {
             badgeTag.dataset.badgeTapBound = 'true';
             delete badgeTag.dataset.icityBadgeTapBound;
-            bindIcityTap(badgeTag, openIcityBadgesPage);
+            bindIcityTap(badgeTag, (e) => {
+                e.stopPropagation();
+                openIcityBadgesPage();
+            });
         }
 
         $$('.settings-item[data-icity-open-badges]').forEach(el => {
             if (!el.dataset.icityBadgeOpenTap) {
                 el.dataset.icityBadgeOpenTap = 'true';
-                bindIcityTap(el, openIcityBadgesPage);
+                bindIcityTap(el, (e) => {
+                    e.stopPropagation();
+                    openIcityBadgesPage();
+                });
             }
         });
 
         const settingsTitleItem = findIcitySettingItem(viewSettings, 'iCity 市民称号');
         if (settingsTitleItem && !settingsTitleItem.dataset.titleOpenBound) {
             settingsTitleItem.dataset.titleOpenBound = 'true';
-            bindIcityTap(settingsTitleItem, openCitizenTitlePage);
+            bindIcityTap(settingsTitleItem, (e) => {
+                e.stopPropagation();
+                openCitizenTitlePage();
+            });
         }
 
         const appSettingsTitleItem = findIcitySettingItem(viewAppSettings, 'iCity 市民称号');
         if (appSettingsTitleItem && !appSettingsTitleItem.dataset.titleOpenBound) {
             appSettingsTitleItem.dataset.titleOpenBound = 'true';
-            bindIcityTap(appSettingsTitleItem, openCitizenTitlePage);
+            bindIcityTap(appSettingsTitleItem, (e) => {
+                e.stopPropagation();
+                openCitizenTitlePage();
+            });
         }
     }
 
@@ -11125,7 +11139,7 @@
             inline.innerHTML = (title ? '<span class="icity-inline-title">🏷️ ' + escapeIcityHtml(title.label) + '</span>' : '') +
                 wornBadges.map(item => '<span>' + item.icon + ' ' + escapeIcityHtml(item.label) + '</span>').join('');
             inline.style.display = title || wornBadges.length ? 'flex' : 'none';
-            bindIcityBadgeAction(inline, () => openIcityBadgeManager('badges'));
+            inline.onclick = null;
         });
     }
 
@@ -11238,12 +11252,52 @@
         const source = await getIcityBadgeSource();
         if (data.wornTitleId === title.id) {
             data.wornTitleId = '';
-            showIcityBadgeToast('已取下市民称号');
+            showIcityBadgeToast('已取下称号「' + title.label + '」');
         } else {
             if (!title.rule(source)) {
                 showIcityBadgeToast('该称号尚未解锁');
                 return;
             }
+            data.wornTitleId = title.id;
+            showIcityBadgeToast('已佩戴称号「' + title.label + '」');
+        }
+        await saveIcityBadgesData(data);
+        await refreshIcityBadgeUi();
+        const panel = $('#icity-badge-panel');
+        if (panel && panel.classList.contains('active')) {
+            await renderIcityBadgeManager();
+        }
+    }
+
+    async function toggleIcityBadge(badgeId) {
+        const badge = getIcityBadgeById(badgeId);
+        if (!badge) return;
+        const data = await getIcityBadgesData();
+        const source = await getIcityBadgeSource();
+        const recommendation = (data.aiRecommendations || []).some(item => item.id === badge.id);
+        const isWorn = data.wornBadgeIds.includes(badge.id);
+        if (isWorn) {
+            data.wornBadgeIds = data.wornBadgeIds.filter(id => id !== badge.id);
+            showIcityBadgeToast('已取下勋章「' + badge.label + '」');
+        } else {
+            if (!source.unlockedBadgeIds.includes(badge.id) && !recommendation) {
+                showIcityBadgeToast('该徽章尚未解锁，继续记录生活即可解锁');
+                return;
+            }
+            if (data.wornBadgeIds.length >= ICITY_BADGE_MAX_WORN) {
+                showIcityBadgeToast('最多同时佩戴 ' + ICITY_BADGE_MAX_WORN + ' 枚勋章');
+                return;
+            }
+            data.wornBadgeIds.push(badge.id);
+            showIcityBadgeToast('已佩戴勋章「' + badge.label + '」');
+        }
+        await saveIcityBadgesData(data);
+        await refreshIcityBadgeUi();
+        const panel = $('#icity-badge-panel');
+        if (panel && panel.classList.contains('active')) {
+            await renderIcityBadgeManager();
+        }
+    }
             data.wornTitleId = title.id;
             showIcityBadgeToast(`已佩戴称号：${title.label}`);
         }
