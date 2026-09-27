@@ -609,14 +609,20 @@
             <svg class="w-4 h-4 text-claude-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
             </svg>
-            <span class="font-semibold text-xs text-claude-text">软件使用免责与合规声明</span>
+            <span class="font-semibold text-xs text-claude-text">开源使用协议与免责声明</span>
           </div>
           
-          <div class="space-y-2.5 text-claude-muted text-[11px] leading-relaxed">
+          <div class="space-y-3 text-claude-muted text-[11px] leading-relaxed">
+            <div class="p-2.5 bg-claude-bg border border-claude-border rounded-xl space-y-1 text-claude-text font-medium">
+              <p>📌 <strong class="text-claude-accent">作者版权声明</strong>：本项目原作者为 <strong class="text-claude-text font-bold">春水生</strong>。</p>
+              <p>🔄 <strong class="text-emerald-700">二次传播与分发许可</strong>：允许非商业性质的自由分享与二传，但在任何形式的二次分发、修改衍生版本中，必须在显著位置完整标注原作者名称：<strong class="text-claude-text font-bold">春水生</strong>。</p>
+              <p>🚫 <strong class="text-red-500">商业与盈利限制</strong>：严禁将本软件或基于本软件修改的衍生版本用于任何形式的倒卖、转售、付费打包、会员变现或谋取商业利益的行为。</p>
+            </div>
+
             <p>1. <strong class="text-claude-text">数据安全与隐私保护</strong>：本软件为纯前端本地化运行工具，所有的 API Key、GitHub Token、本地导入文件及聊天记录均仅保存在您当前设备的浏览器 IndexedDB 中，不会向除您自主配置的接口之外的任何第三方服务器上传数据。</p>
             <p>2. <strong class="text-claude-text">AI 生成内容准确性</strong>：AI 生成的代码、补丁方案及解释均由第三方大语言模型生成，受模型训练集及偶发幻觉影响，可能存在逻辑错误、兼容性缺失或性能缺陷。在推送或部署至生产环境前，使用者有义务自行核对与测试。</p>
-            <p>3. <strong class="text-claude-text">代码推送与版本安全</strong>：自动推送功能将根据补丁直接提交并覆盖 GitHub 对应文件。使用者应知悉代码提交操作的风险，建议在独立分支中运行或事先进行完备的 Git 历史备份，开发者不对因代码推送产生的任何工程故障、数据丢失或业务中断承担责任。</p>
-            <p>4. <strong class="text-claude-text">合规使用规范</strong>：请遵守相关法律法规及第三方 API 提供商的服务协议，严禁将本工具用于任何侵犯知识产权、危害网络安全或违反法律的活动。</p>
+            <p>3. <strong class="text-claude-text">代码推送与版本安全</strong>：自动推送功能将根据补丁直接提交并覆盖 GitHub 对应文件。使用者应知悉代码提交操作的风险，建议在独立分支中运行或事先进行完备的 Git 历史备份，作者不对因代码推送产生的任何工程故障、数据丢失或业务中断承担责任。</p>
+            <p>4. <strong class="text-claude-text">合规使用规范</strong>：请遵守相关法律法规及第三方 API 提供商的服务协议，严禁将本工具用于任何侵犯知识产权、危害网络安全或违反法律的活动。使用者在使用本工具时产生的全部行为由使用者自行承担法律责任。</p>
           </div>
         </div>
       </div>
@@ -3289,8 +3295,11 @@
           // 1. 修改代码阶段
           let updatedContent = '';
           const firstReplace = currentFilePatches[0]?.replace || '';
-          const isIndependentHtml = (filePath.toLowerCase().endsWith('.html') || filePath.toLowerCase().endsWith('.htm')) &&
-            (filePath.toLowerCase().includes('preview') || filePath.toLowerCase().includes('demo') || !state.selectedPaths.has(filePath) || firstReplace.includes('<!DOCTYPE') || firstReplace.includes('<html'));
+          const lowerFilePath = filePath.toLowerCase();
+          const isExplicitPreview = lowerFilePath.includes('preview') || lowerFilePath.includes('demo') || lowerFilePath.startsWith('temp_');
+          // 确保 index.html 或项目的核心 HTML 绝对不会被当做免推送的原型页面
+          const isIndexOrCoreHtml = lowerFilePath === 'index.html' || lowerFilePath.endsWith('/index.html');
+          const isIndependentHtml = (lowerFilePath.endsWith('.html') || lowerFilePath.endsWith('.htm')) && isExplicitPreview && !isIndexOrCoreHtml;
 
           try {
             if (!fileObj || !fileObj.content) {
@@ -3309,15 +3318,25 @@
                 const checkRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}?ref=${state.git.branch}`, {
                   headers: { 'Authorization': `Bearer ${state.git.token}` }
                 });
-                if (!checkRes.ok) throw new Error('拉取最新文件失败');
-                const fileData = await checkRes.json();
-                fileObj = {
-                  path: filePath,
-                  sha: fileData.sha,
-                  content: decodeURIComponent(escape(atob(fileData.content))),
-                  isLocal: false
-                };
-                state.loadedFilesMap[filePath] = fileObj;
+                if (checkRes.ok) {
+                  const fileData = await checkRes.json();
+                  fileObj = {
+                    path: filePath,
+                    sha: fileData.sha,
+                    content: decodeURIComponent(escape(atob(fileData.content))),
+                    isLocal: false
+                  };
+                  state.loadedFilesMap[filePath] = fileObj;
+                } else {
+                  // 如果是 index.html 或首次推送的新文件，允许初始化为空文件以接收补丁
+                  fileObj = {
+                    path: filePath,
+                    sha: null,
+                    content: '',
+                    isLocal: false
+                  };
+                  state.loadedFilesMap[filePath] = fileObj;
+                }
               }
             }
 
