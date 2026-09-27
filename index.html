@@ -303,8 +303,8 @@
         </button>
 
         <div class="flex items-center space-x-2 relative">
-          <!-- 实时 Token 显示 -->
-          <div class="text-[11px] font-mono text-claude-muted bg-claude-card/80 px-2 py-0.5 rounded border border-claude-border/80 flex items-center gap-1">
+          <!-- 实时 Token 显示（点击呼出占比与额度统计弹窗） -->
+          <div onclick="openTokenAnalyticsModal()" title="点击查看Token细分占比与费用统计" class="text-[11px] font-mono text-claude-muted bg-claude-card hover:bg-claude-hover active:scale-95 cursor-pointer px-2 py-0.5 rounded border border-claude-border/80 flex items-center gap-1 transition-all">
             <span class="w-1.5 h-1.5 rounded-full bg-claude-accent inline-block"></span>
             <span id="footer-token-count">0 tok</span>
           </div>
@@ -766,10 +766,20 @@
         </button>
         <span id="preview-title" class="font-semibold text-sm truncate max-w-[180px]">实时预览</span>
       </div>
-      <button onclick="refreshPreviewIframe()" class="px-2.5 py-1 text-xs rounded-lg border border-claude-border bg-claude-card flex items-center gap-1 active:bg-claude-hover">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-        刷新
-      </button>
+      <div class="flex items-center gap-1.5">
+        <button onclick="copyCurrentPreviewSource()" class="px-2.5 py-1 text-xs rounded-lg border border-claude-border bg-claude-card flex items-center gap-1 active:bg-claude-hover text-claude-text">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          复制
+        </button>
+        <button onclick="downloadCurrentPreviewSource()" class="px-2.5 py-1 text-xs rounded-lg border border-claude-border bg-claude-card flex items-center gap-1 active:bg-claude-hover text-claude-accent font-medium">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          下载
+        </button>
+        <button onclick="refreshPreviewIframe()" class="px-2.5 py-1 text-xs rounded-lg border border-claude-border bg-claude-card flex items-center gap-1 active:bg-claude-hover text-claude-muted">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          刷新
+        </button>
+      </div>
     </div>
     <div class="flex-1 w-full h-full bg-white relative">
       <iframe id="project-preview-iframe" class="w-full h-full border-none"></iframe>
@@ -800,6 +810,88 @@
       <div class="pt-3 border-t border-claude-border flex justify-end gap-2">
         <button onclick="closeModal('model-pull-modal')" class="px-3.5 py-1.5 rounded-xl border border-claude-border text-xs text-claude-muted">取消</button>
         <button onclick="confirmSaveSelectedPulledModels()" class="px-4 py-1.5 rounded-xl bg-claude-accent text-white text-xs font-medium active:bg-claude-accentHover">保存至工作库</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 弹窗：Token 详细占比与 API 扣费额度统计 ================= -->
+  <div id="token-analytics-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-claude-card w-full max-w-sm rounded-3xl border border-claude-border shadow-2xl p-4 flex flex-col space-y-3.5">
+      <div class="flex justify-between items-center border-b border-claude-border pb-2.5">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-lg bg-claude-accent text-white flex items-center justify-center font-mono font-bold text-xs">T</div>
+          <span class="font-bold text-sm text-claude-text">Token 占比与费用统计</span>
+        </div>
+        <button onclick="closeModal('token-analytics-modal')" class="p-1 text-claude-muted hover:text-claude-text">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- API 调取次数与扣费面板 -->
+      <div class="grid grid-cols-2 gap-2">
+        <div class="bg-claude-bg p-2.5 rounded-xl border border-claude-border">
+          <div class="text-[10px] text-claude-muted font-medium">调取 API 次数</div>
+          <div id="analytics-api-calls" class="text-base font-bold text-claude-text mt-0.5 font-mono">0 次</div>
+        </div>
+        <div class="bg-claude-bg p-2.5 rounded-xl border border-claude-border">
+          <div class="text-[10px] text-claude-muted font-medium">累计预估扣费</div>
+          <div id="analytics-api-cost" class="text-base font-bold text-claude-accent mt-0.5 font-mono">$0.0000</div>
+          <div id="analytics-api-cost-rmb" class="text-[9px] text-claude-muted font-mono">约 ¥0.00</div>
+        </div>
+      </div>
+
+      <!-- Token 分段条形图展示 -->
+      <div class="space-y-1.5">
+        <div class="flex justify-between items-center text-xs">
+          <span class="font-semibold text-claude-text">当前会话 Token 占比</span>
+          <span id="analytics-total-tokens" class="font-mono text-claude-accent font-bold">0 tok</span>
+        </div>
+        <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex">
+          <div id="bar-tok-prompt" class="bg-purple-500 h-full transition-all" style="width: 0%" title="系统提示词"></div>
+          <div id="bar-tok-history" class="bg-sky-500 h-full transition-all" style="width: 0%" title="聊天上下文"></div>
+          <div id="bar-tok-files" class="bg-emerald-500 h-full transition-all" style="width: 0%" title="附带文件代码"></div>
+          <div id="bar-tok-images" class="bg-amber-400 h-full transition-all" style="width: 0%" title="图片多模态"></div>
+          <div id="bar-tok-input" class="bg-rose-400 h-full transition-all" style="width: 0%" title="当前用户输入"></div>
+        </div>
+      </div>
+
+      <!-- 细分列表 -->
+      <div class="space-y-1.5 text-xs bg-claude-bg p-2.5 rounded-xl border border-claude-border">
+        <div class="flex justify-between items-center">
+          <span class="flex items-center gap-1.5 text-claude-muted text-[11px]">
+            <span class="w-2 h-2 rounded-full bg-purple-500"></span>系统提示词 (Prompt):
+          </span>
+          <span id="label-tok-prompt" class="font-mono font-medium text-claude-text">0 (0%)</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="flex items-center gap-1.5 text-claude-muted text-[11px]">
+            <span class="w-2 h-2 rounded-full bg-sky-500"></span>聊天历史上下文:
+          </span>
+          <span id="label-tok-history" class="font-mono font-medium text-claude-text">0 (0%)</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="flex items-center gap-1.5 text-claude-muted text-[11px]">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>附带/载入文件代码:
+          </span>
+          <span id="label-tok-files" class="font-mono font-medium text-claude-text">0 (0%)</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="flex items-center gap-1.5 text-claude-muted text-[11px]">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>图片多模态输入:
+          </span>
+          <span id="label-tok-images" class="font-mono font-medium text-claude-text">0 (0%)</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="flex items-center gap-1.5 text-claude-muted text-[11px]">
+            <span class="w-2 h-2 rounded-full bg-rose-400"></span>当前提问输入框:
+          </span>
+          <span id="label-tok-input" class="font-mono font-medium text-claude-text">0 (0%)</span>
+        </div>
+      </div>
+
+      <div class="pt-1 flex items-center justify-between text-[11px]">
+        <button onclick="resetApiCallStats()" class="text-red-500 hover:underline">清空累计调用统计</button>
+        <button onclick="closeModal('token-analytics-modal')" class="px-3 py-1 bg-claude-accent text-white rounded-lg active:bg-claude-accentHover font-medium">关闭</button>
       </div>
     </div>
   </div>
@@ -1055,13 +1147,7 @@
       deferredPwaPrompt = e;
     });
 
-    const DEFAULT_SYSTEM_PROMPT = `你是一个顶级智能助手，精通全栈工程开发，也擅长解答各类日常问题与进行自由深度交谈。
-【行为规范】：
-1. 正常闲聊、解答疑问、技术咨询时：用清晰生动的方式直接回答，畅所欲言。
-2. 涉及代码修改诉求时：只输出局部修改，严禁输出完整大文件！格式如下：
-<<<PATCH path="目标文件相对路径" occurrence="last">>>
-<<<<<<< SEARCH
-原文件中需要被替换的一小段精确代码
+修改后的新代码
 <<<DIVIDER_REPLACE_CONTENT>>>
 修改后的新代码
 >>>>>>> REPLACE
@@ -1201,6 +1287,14 @@
 
       state.totalSessionTokens = 0;
       document.getElementById('footer-token-count').innerText = `0 tok`;
+
+      // 初始化 API 调取累计统计
+      const savedStats = await storage.get('settings', 'api_usage_stats');
+      if (savedStats && savedStats.val) {
+        state.apiStats = savedStats.val;
+      } else {
+        state.apiStats = { totalCalls: 0, totalPromptTokens: 0, totalCompletionTokens: 0, totalCostUsd: 0 };
+      }
 
       const savedAutoPush = await storage.get('settings', 'autopush_setting');
       if (savedAutoPush !== null && savedAutoPush !== undefined) state.autoPush = savedAutoPush.val;
@@ -2046,10 +2140,77 @@
     function updateRealtimeTokenEstimator() {
       const inputEl = document.getElementById('user-input');
       const tokEl = document.getElementById('footer-token-count');
-      if (!inputEl || !tokEl) return; // 杜绝 null 读取报错
+      if (!inputEl || !tokEl) return;
       const text = inputEl.value;
       const estimatedInputTok = Math.round(text.length / 3.2);
       tokEl.innerText = `${state.totalSessionTokens + estimatedInputTok} tok`;
+    }
+
+    // 打开 Token 细分占比与费用统计弹窗
+    function openTokenAnalyticsModal() {
+      if (!state.apiStats) {
+        state.apiStats = { totalCalls: 0, totalPromptTokens: 0, totalCompletionTokens: 0, totalCostUsd: 0 };
+      }
+
+      // 计算各部分实时 Token
+      const systemTok = Math.max(1, Math.round((state.customPrompt || DEFAULT_SYSTEM_PROMPT).length / 3.6));
+      
+      let historyTok = 0;
+      if (Array.isArray(state.messages)) {
+        state.messages.forEach(m => {
+          const txt = typeof m.apiContent === 'string' ? m.apiContent : (m.cleanText || m.content || '');
+          historyTok += Math.round(txt.length / 3.6);
+        });
+      }
+
+      let filesTok = 0;
+      state.selectedPaths.forEach(p => {
+        const f = state.loadedFilesMap[p];
+        if (f && f.content) filesTok += Math.round(f.content.length / 3.6);
+      });
+
+      let imgTok = state.selectedImageBase64 ? 1200 : 0;
+      const inputVal = document.getElementById('user-input')?.value || '';
+      let inputTok = Math.round(inputVal.length / 3.2);
+
+      const totalCurrent = systemTok + historyTok + filesTok + imgTok + inputTok;
+
+      // 更新分段占比条与数据标签
+      const setBar = (id, labelId, val) => {
+        const pct = totalCurrent > 0 ? ((val / totalCurrent) * 100).toFixed(1) : 0;
+        const bar = document.getElementById(id);
+        const lbl = document.getElementById(labelId);
+        if (bar) bar.style.width = `${pct}%`;
+        if (lbl) lbl.innerText = `${val} (${pct}%)`;
+      };
+
+      setBar('bar-tok-prompt', 'label-tok-prompt', systemTok);
+      setBar('bar-tok-history', 'label-tok-history', historyTok);
+      setBar('bar-tok-files', 'label-tok-files', filesTok);
+      setBar('bar-tok-images', 'label-tok-images', imgTok);
+      setBar('bar-tok-input', 'label-tok-input', inputTok);
+
+      const totalLabel = document.getElementById('analytics-total-tokens');
+      if (totalLabel) totalLabel.innerText = `${totalCurrent} tok`;
+
+      // 调取次数与扣费面板显示
+      const callsEl = document.getElementById('analytics-api-calls');
+      const costEl = document.getElementById('analytics-api-cost');
+      const rmbEl = document.getElementById('analytics-api-cost-rmb');
+
+      if (callsEl) callsEl.innerText = `${state.apiStats.totalCalls || 0} 次`;
+      const costUsd = state.apiStats.totalCostUsd || 0;
+      if (costEl) costEl.innerText = `$${costUsd.toFixed(4)}`;
+      if (rmbEl) rmbEl.innerText = `约 ¥${(costUsd * 7.25).toFixed(4)}`;
+
+      openModal('token-analytics-modal');
+    }
+
+    async function resetApiCallStats() {
+      if (!confirm('确定清空历史累计调用次数与扣费统计吗？')) return;
+      state.apiStats = { totalCalls: 0, totalPromptTokens: 0, totalCompletionTokens: 0, totalCostUsd: 0 };
+      await storage.set('settings', { key: 'api_usage_stats', val: state.apiStats });
+      openTokenAnalyticsModal();
     }
 
     // 展开/折叠项目文件夹包裹层 (支持区分 git 与 local)
@@ -3057,10 +3218,7 @@
         state.totalSessionTokens = usage.total_tokens;
         document.getElementById('footer-token-count').innerText = `${state.totalSessionTokens} tok`;
 
-        const respTime = getFormattedTime();
-
-        // 提取精准局部修改补丁（支持容错与未闭合兜底）
-        const patchRegex = /<<<PATCH\s+path="([^"]+)"(?:\s+occurrence="([^"]+)")?[^>]*>>>[\s\S]*?<<<<<<< SEARCH([\s\S]*?)(?:<<<DIVIDER_REPLACE_CONTENT>>>|\n={7,}\n)([\s\S]*?)(?:>>>>>>> REPLACE[\s\S]*?<<<END_PATCH>>>|>>>>>>> REPLACE[\s\S]*?$|<<<END_PATCH>>>|$)/g;
+|\n={7,}\n)([\s\S]*?)(?:<<<DIVIDER_REPLACE_CONTENT>>>|\n={7,}\n)([\s\S]*?)(?:>>>>>>> REPLACE[\s\S]*?<<<END_PATCH>>>|>>>>>>> REPLACE[\s\S]*?$|<<<END_PATCH>>>|$)/g;
         const patches = [];
         let pMatch;
         while ((pMatch = patchRegex.exec(content)) !== null) {
@@ -3457,43 +3615,72 @@
       }
 
       // 检测是否有 HTML 补丁文件或 HTML 完整代码块，直接生成实时在线预览入口
+      // 增强 HTML 独立文件卡片：支持在线预览、一键复制源码、一键下载文件
       let htmlPreviewCard = '';
       let targetHtmlPath = '';
+      
+      // 检测 CREATE_FILE 或者现有 sessionFiles 中是否有独立 HTML
+      const allSessionKeys = Object.keys(state.sessionFiles || {});
+      const latestHtmlInSession = allSessionKeys.reverse().find(k => k.toLowerCase().endsWith('.html') || k.toLowerCase().endsWith('.htm'));
+
       if (data.patches && data.patches.length > 0) {
         const htmlPatch = data.patches.find(p => p.path.toLowerCase().endsWith('.html') || p.path.toLowerCase().endsWith('.htm'));
-        if (htmlPatch) {
-          targetHtmlPath = htmlPatch.path;
-        }
+        if (htmlPatch) targetHtmlPath = htmlPatch.path;
+      } else if (latestHtmlInSession) {
+        targetHtmlPath = latestHtmlInSession;
       }
 
-      // 若没有补丁但正文包含了完整的 ```html 代码块
+      // 若正文包含 ```html 代码块
       const fullHtmlMatch = (data.cleanText || '').match(/```html\s*([\s\S]*?)```/i);
 
       if (targetHtmlPath) {
         htmlPreviewCard = `
-          <div class="mt-2.5 p-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between shadow-2xs">
-            <div class="flex items-center gap-2 truncate">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span class="text-xs font-medium text-emerald-900 truncate">检测到 HTML 页面更新: ${escapeHtml(targetHtmlPath)}</span>
+          <div class="mt-2.5 p-2.5 bg-emerald-50/90 border border-emerald-200 rounded-xl flex flex-col gap-2 shadow-2xs">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-xs font-semibold text-emerald-950 truncate">${escapeHtml(targetHtmlPath)}</span>
+                <span class="text-[9px] bg-emerald-200/60 text-emerald-800 px-1.5 py-0.2 rounded font-mono">独立HTML</span>
+              </div>
             </div>
-            <button onclick="previewHtmlFile('${targetHtmlPath}')" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 active:bg-emerald-700 shadow-xs flex-shrink-0">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-              <span>立即在线预览</span>
-            </button>
+            <div class="flex items-center justify-end gap-1.5 pt-0.5 border-t border-emerald-200/50">
+              <button onclick="copyFileSourceCode('${targetHtmlPath}')" class="px-2.5 py-1 bg-white border border-emerald-300 text-emerald-800 rounded-lg text-xs font-medium active:bg-emerald-100 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                <span>复制代码</span>
+              </button>
+              <button onclick="downloadCurrentFile('${targetHtmlPath}')" class="px-2.5 py-1 bg-white border border-emerald-300 text-emerald-800 rounded-lg text-xs font-medium active:bg-emerald-100 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>下载文件</span>
+              </button>
+              <button onclick="previewHtmlFile('${targetHtmlPath}')" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 active:bg-emerald-700 shadow-xs">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <span>立即在线预览</span>
+              </button>
+            </div>
           </div>
         `;
       } else if (fullHtmlMatch) {
         const snippetIndex = data.msgIndex !== undefined ? data.msgIndex : Date.now();
         htmlPreviewCard = `
-          <div class="mt-2.5 p-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between shadow-2xs">
-            <div class="flex items-center gap-2 truncate">
+          <div class="mt-2.5 p-2.5 bg-emerald-50/90 border border-emerald-200 rounded-xl flex flex-col gap-2 shadow-2xs">
+            <div class="flex items-center gap-1.5 truncate">
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span class="text-xs font-medium text-emerald-900 truncate">生成了 HTML 项目代码</span>
+              <span class="text-xs font-semibold text-emerald-950 truncate">生成了 HTML 完整代码</span>
             </div>
-            <button onclick="previewRawHtmlSnippet(${snippetIndex})" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 active:bg-emerald-700 shadow-xs flex-shrink-0">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-              <span>立即在线预览</span>
-            </button>
+            <div class="flex items-center justify-end gap-1.5 pt-0.5 border-t border-emerald-200/50">
+              <button onclick="copyRawSnippetCode(${snippetIndex})" class="px-2.5 py-1 bg-white border border-emerald-300 text-emerald-800 rounded-lg text-xs font-medium active:bg-emerald-100 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                <span>复制代码</span>
+              </button>
+              <button onclick="downloadRawSnippetCode(${snippetIndex})" class="px-2.5 py-1 bg-white border border-emerald-300 text-emerald-800 rounded-lg text-xs font-medium active:bg-emerald-100 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>下载文件</span>
+              </button>
+              <button onclick="previewRawHtmlSnippet(${snippetIndex})" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 active:bg-emerald-700 shadow-xs">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <span>立即在线预览</span>
+              </button>
+            </div>
           </div>
         `;
       }
@@ -3685,11 +3872,76 @@
       }, 1000);
     }
 
+    // 一键复制指定文件源码
+    function copyFileSourceCode(path) {
+      let content = state.sessionFiles?.[path]?.currentContent || state.loadedFilesMap?.[path]?.content;
+      if (!content) return alert('未找到文件内容');
+      navigator.clipboard.writeText(content).then(() => {
+        alert(`已成功复制 [${path}] 的全部源码到剪贴板！`);
+      }).catch(() => {
+        const t = document.createElement('textarea');
+        t.value = content;
+        document.body.appendChild(t);
+        t.select();
+        document.execCommand('copy');
+        document.body.removeChild(t);
+        alert(`已成功复制 [${path}] 源码！`);
+      });
+    }
+
+    // 一键复制消息中提取的 HTML 代码块
+    function copyRawSnippetCode(msgIndex) {
+      const msg = state.messages[msgIndex];
+      const sourceText = msg ? (msg.cleanText || msg.content || '') : '';
+      const match = sourceText.match(/```html\s*([\s\S]*?)```/i);
+      if (!match || !match[1]) return alert('未提取到 HTML 代码');
+      navigator.clipboard.writeText(match[1].trim()).then(() => {
+        alert('已成功复制 HTML 完整代码到剪贴板！');
+      });
+    }
+
+    // 一键下载消息中提取的 HTML 代码为文件
+    function downloadRawSnippetCode(msgIndex) {
+      const msg = state.messages[msgIndex];
+      const sourceText = msg ? (msg.cleanText || msg.content || '') : '';
+      const match = sourceText.match(/```html\s*([\s\S]*?)```/i);
+      if (!match || !match[1]) return alert('未提取到 HTML 代码');
+      const blob = new Blob([match[1].trim()], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `preview_${Date.now().toString().slice(-4)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }
+
+    // 复制当前预览弹窗正在展示的 HTML
+    function copyCurrentPreviewSource() {
+      if (!activePreviewSourceCode) return alert('当前没有正在预览的源码');
+      navigator.clipboard.writeText(activePreviewSourceCode).then(() => {
+        alert('已复制当前预览页面的完整源码！');
+      });
+    }
+
+    // 下载当前预览弹窗正在展示的 HTML
+    function downloadCurrentPreviewSource() {
+      if (!activePreviewSourceCode) return alert('当前没有正在预览的源码');
+      const blob = new Blob([activePreviewSourceCode], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = activePreviewFileName || 'preview.html';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }
+
     // HTML 实时网页效果全屏预览
     let currentPreviewUrl = null;
+    let activePreviewSourceCode = '';
+    let activePreviewFileName = 'preview.html';
+
     function previewHtmlFile(path) {
       let content = null;
-      // 优先从 loadedFilesMap 取，若无则从 sessionFiles 取
       if (state.loadedFilesMap[path] && state.loadedFilesMap[path].content) {
         content = state.loadedFilesMap[path].content;
       } else if (state.sessionFiles && state.sessionFiles[path] && state.sessionFiles[path].currentContent) {
@@ -3700,11 +3952,14 @@
         return alert('暂未检测到该文件的最新内容，请等待生成完成或拉取后再预览。');
       }
 
+      activePreviewSourceCode = content;
+      activePreviewFileName = path.split('/').pop() || 'preview.html';
+
       if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
       const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
       currentPreviewUrl = URL.createObjectURL(blob);
       
-      document.getElementById('preview-title').innerText = `预览: ${path}`;
+      document.getElementById('preview-title').innerText = `预览: ${activePreviewFileName}`;
       const iframe = document.getElementById('project-preview-iframe');
       iframe.src = currentPreviewUrl;
       openModal('preview-modal');
@@ -3719,8 +3974,11 @@
         return alert('未提取到可用的 HTML 代码');
       }
 
+      activePreviewSourceCode = match[1].trim();
+      activePreviewFileName = `snippet_${Date.now().toString().slice(-4)}.html`;
+
       if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
-      const blob = new Blob([match[1].trim()], { type: 'text/html;charset=utf-8' });
+      const blob = new Blob([activePreviewSourceCode], { type: 'text/html;charset=utf-8' });
       currentPreviewUrl = URL.createObjectURL(blob);
 
       document.getElementById('preview-title').innerText = '实时预览: 生成的 HTML 页面';
