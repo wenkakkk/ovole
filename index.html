@@ -3288,41 +3288,66 @@
 
           // 1. 修改代码阶段
           let updatedContent = '';
+          const firstReplace = currentFilePatches[0]?.replace || '';
+          const isIndependentHtml = (filePath.toLowerCase().endsWith('.html') || filePath.toLowerCase().endsWith('.htm')) &&
+            (filePath.toLowerCase().includes('preview') || filePath.toLowerCase().includes('demo') || !state.selectedPaths.has(filePath) || firstReplace.includes('<!DOCTYPE') || firstReplace.includes('<html'));
+
           try {
             if (!fileObj || !fileObj.content) {
-              if (isLocalFile) {
+              if (isIndependentHtml) {
+                // 独立 HTML 文件：本地直接初始化，无需去远程 GitHub 404 拉取
+                fileObj = {
+                  path: filePath,
+                  sha: null,
+                  content: '',
+                  isLocal: true
+                };
+                state.loadedFilesMap[filePath] = fileObj;
+              } else if (isLocalFile) {
                 throw new Error('本地文件内容为空，无法替换');
+              } else {
+                const checkRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}?ref=${state.git.branch}`, {
+                  headers: { 'Authorization': `Bearer ${state.git.token}` }
+                });
+                if (!checkRes.ok) throw new Error('拉取最新文件失败');
+                const fileData = await checkRes.json();
+                fileObj = {
+                  path: filePath,
+                  sha: fileData.sha,
+                  content: decodeURIComponent(escape(atob(fileData.content))),
+                  isLocal: false
+                };
+                state.loadedFilesMap[filePath] = fileObj;
               }
-              const checkRes = await fetch(`https://api.github.com/repos/${state.git.repo}/contents/${filePath}?ref=${state.git.branch}`, {
-                headers: { 'Authorization': `Bearer ${state.git.token}` }
-              });
-              if (!checkRes.ok) throw new Error('拉取最新文件失败');
-              const fileData = await checkRes.json();
-              fileObj = {
-                path: filePath,
-                sha: fileData.sha,
-                content: decodeURIComponent(escape(atob(fileData.content))),
-                isLocal: false
-              };
-              state.loadedFilesMap[filePath] = fileObj;
             }
 
-            updatedContent = fileObj.content;
+            updatedContent = fileObj.content || '';
             for (const patch of currentFilePatches) {
-              const patched = applyPatch(updatedContent, patch.search, patch.replace, patch.occurrence || 'last');
-              if (patched === null) {
-                throw new Error('未在当前文件匹配到 SEARCH 片段');
+              // 若原文件为空，或者补丁内容本身就是一个完整的独立 HTML 页面，直接作为全文
+              if (!updatedContent || patch.replace.includes('<!DOCTYPE') || patch.replace.includes('<html lang') || patch.search.trim() === '') {
+                updatedContent = patch.replace;
+              } else {
+                const patched = applyPatch(updatedContent, patch.search, patch.replace, patch.occurrence || 'last');
+                if (patched === null) {
+                  // 如果未匹配到但替换块是完整页面，则安全作为全文使用
+                  if (patch.replace.includes('<!DOCTYPE') || patch.replace.includes('<html')) {
+                    updatedContent = patch.replace;
+                  } else {
+                    throw new Error('未在当前文件匹配到 SEARCH 片段');
+                  }
+                } else {
+                  updatedContent = patched;
+                }
               }
-              updatedContent = patched;
             }
 
             // 实时存入右侧侧边栏版本树，自动标记已修好并记录时间戳
-            recordFileToRightSidebar(filePath, updatedContent, 'AI修好补丁更新', fileObj?.sha, isLocalFile);
+            recordFileToRightSidebar(filePath, updatedContent, isIndependentHtml ? 'AI独立原型页面' : 'AI修好补丁更新', fileObj?.sha, isIndependentHtml || isLocalFile);
 
             logDiv.innerHTML += `
               <div class="text-claude-success flex items-center gap-1 font-mono font-bold">
                 <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                修改成功 [${filePath}] (已修好并归档至侧边栏)
+                ${isIndependentHtml ? `生成成功 [${filePath}] (支持独立在线预览)` : `修改成功 [${filePath}] (已修好并归档至侧边栏)`}
               </div>
             `;
           } catch (patchErr) {
@@ -3336,15 +3361,15 @@
             continue;
           }
 
-          // 2. 推送代码阶段：如果是独立生成的预览文件（如 preview.html 或 temp 预览），不强行推送到远程仓库
-          const isIndependentPreview = filePath.toLowerCase().includes('preview') || filePath.toLowerCase().startsWith('temp_');
-          if (isIndependentPreview && !state.selectedPaths.has(filePath)) {
+          // 2. 推送代码阶段：凡是独立预览 HTML 页面，免除向远程 GitHub 推送，杜绝 404 / 冲突报错
+          if (isIndependentHtml) {
             logDiv.innerHTML += `
-              <div class="text-amber-600 flex items-center gap-1 font-mono text-[10px]">
-                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                [${filePath}] 属于独立预览文件，已保留本地实时预览，免除远程推送
+              <div class="text-emerald-700 flex items-center gap-1 font-mono text-[10px]">
+                <svg class="w-3.5 h-3.5 flex-shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                [${filePath}] 属于独立网页原型，已生成并支持实时独立预览，免除远程 Git 推送
               </div>
             `;
+            pushSuccessCount++;
             continue;
           }
 
@@ -3845,6 +3870,21 @@
         content = state.loadedFilesMap[path].content;
       } else if (state.sessionFiles && state.sessionFiles[path] && state.sessionFiles[path].currentContent) {
         content = state.sessionFiles[path].currentContent;
+      }
+
+      // 深度兜底：如果在缓存中暂时没找到，直接从聊天历史补丁中提取最新生成的完整 HTML
+      if (!content && Array.isArray(state.messages)) {
+        for (let i = state.messages.length - 1; i >= 0; i--) {
+          const m = state.messages[i];
+          if (Array.isArray(m.patches)) {
+            const p = m.patches.find(item => item.path === path || item.path.endsWith('/' + path) || path.endsWith('/' + item.path));
+            if (p && p.replace) {
+              content = p.replace;
+              recordFileToRightSidebar(path, content, '从补丁载入独立预览', null, true);
+              break;
+            }
+          }
+        }
       }
 
       if (!content) {
