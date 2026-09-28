@@ -770,9 +770,15 @@
         <button onclick="closeModal('preview-modal')" class="p-1 text-claude-muted">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
-        <span id="preview-title" class="font-semibold text-xs truncate max-w-[130px]">实时预览</span>
+        <span id="preview-title" class="font-semibold text-xs truncate max-w-[110px]">实时预览</span>
       </div>
       <div class="flex items-center gap-1.5 flex-shrink-0">
+        <!-- 控制台开关按钮（带错误高亮小徽标） -->
+        <button onclick="togglePreviewConsole()" id="btn-toggle-preview-console" class="px-2 py-1 text-xs rounded-lg border border-claude-border bg-claude-card text-claude-text flex items-center gap-1 active:bg-claude-hover">
+          <svg class="w-3.5 h-3.5 text-claude-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span>控制台</span>
+          <span id="preview-error-badge" class="hidden px-1.5 py-0.2 rounded-full text-[9px] bg-red-500 text-white font-mono font-bold leading-none">0</span>
+        </button>
         <button onclick="copyCurrentPreviewCode()" class="px-2 py-1 text-xs rounded-lg border border-claude-border bg-claude-card text-claude-text flex items-center gap-1 active:bg-claude-hover">
           <svg class="w-3.5 h-3.5 text-claude-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
           <span>复制代码</span>
@@ -786,8 +792,25 @@
         </button>
       </div>
     </div>
-    <div class="flex-1 w-full h-full bg-white relative">
-      <iframe id="project-preview-iframe" class="w-full h-full border-none"></iframe>
+    <div class="flex-1 w-full h-full bg-white relative flex flex-col overflow-hidden">
+      <iframe id="project-preview-iframe" class="w-full flex-1 border-none"></iframe>
+
+      <!-- 控制台面板 -->
+      <div id="preview-console-panel" class="hidden border-t border-claude-border bg-[#1E1E1E] text-gray-200 h-56 flex flex-col flex-shrink-0 z-10 transition-all select-text">
+        <div class="h-8 px-3 bg-[#252526] flex items-center justify-between text-[11px] font-mono text-gray-400 select-none border-b border-[#333333]">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-gray-200">网页控制台 (Console)</span>
+            <span id="preview-console-stats" class="text-gray-400 font-mono">0 个报错</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="clearPreviewConsole()" class="hover:text-white text-gray-400 active:opacity-60">清空控制台</button>
+            <button onclick="togglePreviewConsole(false)" class="hover:text-white text-gray-400 active:opacity-60">收起</button>
+          </div>
+        </div>
+        <div id="preview-console-list" class="flex-1 overflow-y-auto p-2 space-y-2 text-xs font-mono no-scrollbar">
+          <div class="text-gray-500 text-center py-5 text-[11px]">暂无报错日志，页面运行正常</div>
+        </div>
+      </div>
     </div>
   </div>
 
