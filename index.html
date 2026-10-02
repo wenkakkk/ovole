@@ -385,15 +385,15 @@
         <!-- 卡片 A: AI 接口配置 -->
         <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 shadow-2xs">
           <div class="flex items-center justify-between border-b border-claude-border pb-2">
-            <span class="font-semibold text-xs text-claude-text">AI 接口预设</span>
-            <button onclick="deleteCurrentPreset()" class="text-red-500 active:underline text-[10px]">删除此预设</button>
+            <span class="font-semibold text-xs text-claude-text">AI 接口方案与预设</span>
+            <button onclick="deleteCurrentPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
           </div>
           
           <div class="flex gap-2">
             <select id="preset-selector" onchange="onPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
             </select>
             <button onclick="saveAsNewPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
-              保存为预设
+              另存方案
             </button>
           </div>
 
@@ -423,13 +423,13 @@
         <!-- 卡片 B: GitHub 仓库与合作者设置 (放在同一页面) -->
         <div id="section-settings-git-anchor" class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 text-xs shadow-2xs">
           <div class="flex items-center justify-between border-b border-claude-border pb-2">
-            <span class="font-semibold text-xs text-claude-text">GitHub 账号与仓库预设</span>
+            <span class="font-semibold text-xs text-claude-text">GitHub 账号与仓库方案</span>
             <div class="flex items-center gap-2">
               <button onclick="openGitDetailedTutorialModal()" class="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] font-semibold active:bg-emerald-100 flex items-center gap-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                 <span>保姆级接入教程</span>
               </button>
-              <button onclick="deleteCurrentGitPreset()" class="text-red-500 active:underline text-[10px]">删除此预设</button>
+              <button onclick="deleteCurrentGitPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
             </div>
           </div>
           
@@ -437,7 +437,7 @@
             <select id="git-preset-selector" onchange="onGitPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
             </select>
             <button onclick="saveAsNewGitPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
-              保存为预设
+              另存方案
             </button>
           </div>
 
@@ -474,10 +474,10 @@
       <div id="section-settings-prompt" class="space-y-4 hidden">
         <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 text-xs">
           <div class="flex items-center justify-between border-b border-claude-border pb-2">
-            <span class="font-semibold text-xs text-claude-text">系统提示词预设</span>
+            <span class="font-semibold text-xs text-claude-text">系统提示词方案与预设</span>
             <div class="flex items-center gap-2">
               <button onclick="resetPromptToDefault()" class="text-claude-accent active:underline text-[10px]">恢复内置默认</button>
-              <button onclick="deleteCurrentPromptPreset()" class="text-red-500 active:underline text-[10px]">删除此预设</button>
+              <button onclick="deleteCurrentPromptPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
             </div>
           </div>
 
@@ -485,7 +485,7 @@
             <select id="prompt-preset-selector" onchange="onPromptPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
             </select>
             <button onclick="saveAsNewPromptPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
-              保存为预设
+              另存预设
             </button>
           </div>
 
@@ -1315,11 +1315,6 @@
       const savedPromptPresets = await storage.get('settings', 'prompt_presets');
       if (savedPromptPresets && Array.isArray(savedPromptPresets.val) && savedPromptPresets.val.length > 0) {
         state.promptPresets = savedPromptPresets.val;
-        // 确保系统内置默认预设永远保持纯净的原版系统提示词，防止被历史误操作污染
-        const defPreset = state.promptPresets.find(p => p.id === 'prompt_default');
-        if (defPreset) {
-          defPreset.content = DEFAULT_SYSTEM_PROMPT;
-        }
       }
 
       const savedPromptPresetId = await storage.get('settings', 'current_prompt_preset_id');
@@ -1760,68 +1755,42 @@
     }
 
     async function saveAllSettingsFromPage() {
-      // 保存运行时生效配置，绝不触碰和篡改预设库
-      const baseUrl = document.getElementById('ai-base-input').value.trim().replace(/\/+$/, "");
-      const apiKey = document.getElementById('ai-key-input').value.trim();
-
-      const gitToken = document.getElementById('git-token-input').value.trim();
-      const gitRepo = document.getElementById('git-custom-repo').value.trim();
-      const gitBranch = document.getElementById('git-branch').value.trim() || 'main';
-
-      state.git = { token: gitToken, repo: gitRepo, branch: gitBranch };
-      state.customPrompt = document.getElementById('cfg-custom-prompt').value.trim() || DEFAULT_SYSTEM_PROMPT;
-      state.customCss = document.getElementById('cfg-custom-css').value;
-      applyCustomCss(state.customCss);
-
-      await storage.set('settings', { key: 'git_config', val: state.git });
-      await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
-      await storage.set('settings', { key: 'custom_css', val: state.customCss });
-
-      updateStatusHeader();
-      updateModelDisplay();
-      closeFullSettingsPage();
-    }
-
-    async function updateCurrentPreset() {
       const cur = getCurrentPreset();
-      if (!cur) return;
-      cur.name = document.getElementById('ai-preset-name').value.trim() || cur.name;
+      cur.name = document.getElementById('ai-preset-name').value.trim() || '未命名预设';
       cur.baseUrl = document.getElementById('ai-base-input').value.trim().replace(/\/+$/, "");
       cur.apiKey = document.getElementById('ai-key-input').value.trim();
 
-      await storage.set('settings', { key: 'ai_presets', val: state.aiPresets });
-      renderPresetOptions();
-      updateModelDisplay();
-      alert(`已成功更新方案 [${cur.name}]！`);
-    }
+      const curGit = getCurrentGitPreset();
+      curGit.name = document.getElementById('git-preset-name').value.trim() || '未命名Git方案';
+      curGit.token = document.getElementById('git-token-input').value.trim();
+      curGit.repo = document.getElementById('git-custom-repo').value.trim();
+      curGit.branch = document.getElementById('git-branch').value.trim() || 'main';
 
-    async function updateCurrentGitPreset() {
-      const cur = getCurrentGitPreset();
-      if (!cur) return;
-      cur.name = document.getElementById('git-preset-name').value.trim() || cur.name;
-      cur.token = document.getElementById('git-token-input').value.trim();
-      cur.repo = document.getElementById('git-custom-repo').value.trim();
-      cur.branch = document.getElementById('git-branch').value.trim() || 'main';
+      state.git.token = curGit.token;
+      state.git.repo = curGit.repo;
+      state.git.branch = curGit.branch;
 
-      state.git = { token: cur.token, repo: cur.repo, branch: cur.branch };
+      state.customPrompt = document.getElementById('cfg-custom-prompt').value.trim() || DEFAULT_SYSTEM_PROMPT;
+      const curPromptPreset = getCurrentPromptPreset();
+      if (curPromptPreset) {
+        curPromptPreset.content = state.customPrompt;
+      }
+      state.customCss = document.getElementById('cfg-custom-css').value;
+      applyCustomCss(state.customCss);
+
       await storage.set('settings', { key: 'git_presets', val: state.gitPresets });
+      await storage.set('settings', { key: 'current_git_preset_id', val: state.currentGitPresetId });
       await storage.set('settings', { key: 'git_config', val: state.git });
+      await storage.set('settings', { key: 'ai_presets', val: state.aiPresets });
+      await storage.set('settings', { key: 'prompt_presets', val: state.promptPresets });
+      await storage.set('settings', { key: 'current_prompt_preset_id', val: state.currentPromptPresetId });
+      await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
+      await storage.set('settings', { key: 'custom_css', val: state.customCss });
+
       renderGitPresetOptions();
       updateStatusHeader();
-      alert(`已成功更新Git方案 [${cur.name}]！`);
-    }
-
-    async function updateCurrentPromptPreset() {
-      const cur = getCurrentPromptPreset();
-      if (!cur) return;
-      if (cur.id === 'prompt_default') {
-        return alert('内置默认提示词方案受系统保护不可直接覆盖修改。\n如需保存您的专属改动，请点击右侧的【另存预设】！');
-      }
-      cur.content = document.getElementById('cfg-custom-prompt').value.trim() || DEFAULT_SYSTEM_PROMPT;
-      state.customPrompt = cur.content;
-      await storage.set('settings', { key: 'prompt_presets', val: state.promptPresets });
-      await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
-      alert(`已成功保存修改到预设 [${cur.name}]！`);
+      updateModelDisplay();
+      closeFullSettingsPage();
     }
 
     function renderGitPresetOptions() {
@@ -1847,7 +1816,6 @@
     }
 
     async function onGitPresetSelected() {
-      // 纯净恢复：彻底以当时保存的预设数据完整恢复输入框，绝不读取界面临时脏数据
       const selId = document.getElementById('git-preset-selector').value;
       state.currentGitPresetId = selId;
       await storage.set('settings', { key: 'current_git_preset_id', val: selId });
@@ -2384,7 +2352,6 @@
     }
 
     async function onPresetSelected() {
-      // 纯净恢复：彻底以当时保存的 AI 预设数据恢复输入框与模型，不产生任何污染
       const selId = document.getElementById('preset-selector').value;
       state.currentPresetId = selId;
       await storage.set('settings', { key: 'current_preset_id', val: selId });
@@ -2465,20 +2432,23 @@
     }
 
     async function onPromptPresetSelected() {
-      // 彻底移除之前恶意的 curPreset.content = document.getElementById('cfg-custom-prompt').value.trim() 赋值反写！
-      // 纯净加载：只要切换选择预设，立即 100% 恢复成当时保存的样式内容！
+      const curPreset = getCurrentPromptPreset();
+      if (curPreset) {
+        curPreset.content = document.getElementById('cfg-custom-prompt').value.trim();
+      }
+
       const selId = document.getElementById('prompt-preset-selector').value;
       state.currentPromptPresetId = selId;
       await storage.set('settings', { key: 'current_prompt_preset_id', val: selId });
+      await storage.set('settings', { key: 'prompt_presets', val: state.promptPresets });
 
-      const target = getCurrentPromptPreset();
-      if (target) {
-        state.customPrompt = target.content;
-        document.getElementById('cfg-custom-prompt').value = target.content;
-        await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
+      const newActive = getCurrentPromptPreset();
+      if (newActive) {
+        state.customPrompt = newActive.content;
+        document.getElementById('cfg-custom-prompt').value = newActive.content;
       }
     }
-    
+
     function saveAsNewPromptPreset() {
       const input = document.getElementById('new-prompt-preset-name-input');
       if (input) input.value = `自定义提示词_${getFormattedTime().replace(/:/g, '')}`;
