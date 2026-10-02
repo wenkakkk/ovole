@@ -392,7 +392,11 @@
           <div class="flex gap-2">
             <select id="preset-selector" onchange="onPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
             </select>
-            <button onclick="saveAsNewPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
+            <button onclick="saveCurrentPresetChanges(true)" class="px-3 py-2 bg-emerald-600 text-white rounded-lg font-medium active:bg-emerald-700 text-xs flex-shrink-0 flex items-center gap-1 shadow-2xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <span>保存修改</span>
+            </button>
+            <button onclick="saveAsNewPreset()" class="px-3 py-2 bg-claude-card border border-claude-border text-claude-text rounded-lg font-medium active:bg-claude-hover text-xs flex-shrink-0">
               另存方案
             </button>
           </div>
@@ -436,7 +440,11 @@
           <div class="flex gap-2">
             <select id="git-preset-selector" onchange="onGitPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
             </select>
-            <button onclick="saveAsNewGitPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
+            <button onclick="saveCurrentGitPresetChanges(true)" class="px-3 py-2 bg-emerald-600 text-white rounded-lg font-medium active:bg-emerald-700 text-xs flex-shrink-0 flex items-center gap-1 shadow-2xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <span>保存修改</span>
+            </button>
+            <button onclick="saveAsNewGitPreset()" class="px-3 py-2 bg-claude-card border border-claude-border text-claude-text rounded-lg font-medium active:bg-claude-hover text-xs flex-shrink-0">
               另存方案
             </button>
           </div>
@@ -1815,7 +1823,28 @@
       state.git = { token: cur.token, repo: cur.repo, branch: cur.branch };
     }
 
+    // 保存当前正在编辑的 Git 方案修改
+    async function saveCurrentGitPresetChanges(showAlert = false) {
+      const cur = getCurrentGitPreset();
+      if (!cur) return;
+      cur.name = document.getElementById('git-preset-name').value.trim() || '未命名Git方案';
+      cur.token = document.getElementById('git-token-input').value.trim();
+      cur.repo = document.getElementById('git-custom-repo').value.trim();
+      cur.branch = document.getElementById('git-branch').value.trim() || 'main';
+
+      state.git = { token: cur.token, repo: cur.repo, branch: cur.branch };
+      await storage.set('settings', { key: 'git_presets', val: state.gitPresets });
+      await storage.set('settings', { key: 'git_config', val: state.git });
+
+      renderGitPresetOptions();
+      updateStatusHeader();
+      if (showAlert) alert(`Git 方案 [${cur.name}] 已保存成功！`);
+    }
+
     async function onGitPresetSelected() {
+      // 切换前自动将当前输入内容暂存回当前预设，彻底防止内容丢失
+      await saveCurrentGitPresetChanges(false);
+
       const selId = document.getElementById('git-preset-selector').value;
       state.currentGitPresetId = selId;
       await storage.set('settings', { key: 'current_git_preset_id', val: selId });
@@ -1824,8 +1853,11 @@
     }
 
     function saveAsNewGitPreset() {
+      const cur = getCurrentGitPreset();
       const input = document.getElementById('new-git-preset-name-input');
-      if (input) input.value = `Git方案_${getFormattedTime().replace(/:/g, '')}`;
+      if (input) {
+        input.value = cur && cur.name ? `${cur.name}_副本` : `Git方案_${getFormattedTime().replace(/:/g, '')}`;
+      }
       openModal('git-preset-save-modal');
     }
 
@@ -1853,6 +1885,7 @@
       syncGitPresetFormUI();
       updateStatusHeader();
       closeModal('git-preset-save-modal');
+      alert(`已成功创建并切换至新 Git 方案 [${name}]！`);
     }
 
     async function deleteCurrentGitPreset() {
@@ -2351,7 +2384,24 @@
       document.getElementById('model-pull-msg').innerText = cur.availableModels?.length ? `已拉取 ${cur.availableModels.length} 个模型` : '未拉取';
     }
 
+    // 保存当前正在编辑的 AI 方案修改
+    async function saveCurrentPresetChanges(showAlert = false) {
+      const cur = getCurrentPreset();
+      if (!cur) return;
+      cur.name = document.getElementById('ai-preset-name').value.trim() || '未命名预设';
+      cur.baseUrl = document.getElementById('ai-base-input').value.trim().replace(/\/+$/, "");
+      cur.apiKey = document.getElementById('ai-key-input').value.trim();
+
+      await storage.set('settings', { key: 'ai_presets', val: state.aiPresets });
+      renderPresetOptions();
+      updateModelDisplay();
+      if (showAlert) alert(`AI 方案 [${cur.name}] 已保存成功！`);
+    }
+
     async function onPresetSelected() {
+      // 切换前自动将当前输入内容暂存回当前预设，彻底防止内容丢失
+      await saveCurrentPresetChanges(false);
+
       const selId = document.getElementById('preset-selector').value;
       state.currentPresetId = selId;
       await storage.set('settings', { key: 'current_preset_id', val: selId });
@@ -2360,21 +2410,15 @@
     }
 
     async function saveCurrentPreset() {
-      const cur = getCurrentPreset();
-      cur.name = document.getElementById('ai-preset-name').value.trim() || '未命名预设';
-      cur.baseUrl = document.getElementById('ai-base-input').value.trim().replace(/\/+$/, "");
-      cur.apiKey = document.getElementById('ai-key-input').value.trim();
-
-      await storage.set('settings', { key: 'ai_presets', val: state.aiPresets });
-      renderPresetOptions();
-      updateModelDisplay();
-      const aiModal = document.getElementById('ai-modal');
-      if (aiModal) closeModal('ai-modal');
+      await saveCurrentPresetChanges(true);
     }
 
     function saveAsNewPreset() {
+      const cur = getCurrentPreset();
       const input = document.getElementById('new-preset-name-input');
-      if (input) input.value = `新方案_${getFormattedTime().replace(/:/g, '')}`;
+      if (input) {
+        input.value = cur && cur.name ? `${cur.name}_副本` : `新方案_${getFormattedTime().replace(/:/g, '')}`;
+      }
       openModal('preset-save-modal');
     }
 
@@ -2383,13 +2427,15 @@
       const name = input ? input.value.trim() : '';
       if (!name) return alert('请输入方案名称');
 
+      const cur = getCurrentPreset();
+      // 核心修复：另存新方案时，完整继承当前方案的模型列表与当前选中的模型，杜绝被清空
       const newPreset = {
         id: 'preset_' + Date.now(),
         name: name,
         baseUrl: document.getElementById('ai-base-input').value.trim().replace(/\/+$/, ""),
         apiKey: document.getElementById('ai-key-input').value.trim(),
-        model: 'gemini-3.8-flash',
-        availableModels: []
+        model: cur?.model || 'gemini-3.8-flash',
+        availableModels: cur?.availableModels ? [...cur.availableModels] : []
       };
       state.aiPresets.push(newPreset);
       state.currentPresetId = newPreset.id;
@@ -2399,6 +2445,7 @@
       syncPresetFormUI();
       updateModelDisplay();
       closeModal('preset-save-modal');
+      alert(`已成功创建并切换至新 AI 方案 [${name}]！`);
     }
 
     async function deleteCurrentPreset() {
