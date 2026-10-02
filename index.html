@@ -372,9 +372,6 @@
       <button id="set-tab-data" onclick="switchSettingsSection('data')" class="py-3 px-3 text-xs font-semibold text-claude-muted flex items-center gap-1.5 whitespace-nowrap">
         <span>数据管理</span>
       </button>
-      <button id="set-tab-feedback" onclick="switchSettingsSection('feedback')" class="py-3 px-3 text-xs font-semibold text-claude-muted flex items-center gap-1.5 whitespace-nowrap">
-        <span>匿名反馈</span>
-      </button>
       <button id="set-tab-disclaimer" onclick="switchSettingsSection('disclaimer')" class="py-3 px-3 text-xs font-semibold text-claude-muted flex items-center gap-1.5 whitespace-nowrap">
         <span>免责声明</span>
       </button>
@@ -441,6 +438,15 @@
             </select>
             <button onclick="saveAsNewGitPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
               保存为预设
+            </button>
+          </div>
+          </div>
+          
+          <div class="flex gap-2">
+            <select id="git-preset-selector" onchange="onGitPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
+            </select>
+            <button onclick="saveAsNewGitPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
+              另存方案
             </button>
           </div>
 
@@ -612,74 +618,7 @@
 
       </div>
 
-      <!-- 板块 5: 创作者匿名反馈 (零后端、零Worker纯前端直发) -->
-      <div id="section-settings-feedback" class="space-y-4 hidden pt-1">
-        <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3.5 text-xs shadow-2xs">
-          <div class="flex items-center justify-between border-b border-claude-border pb-2.5">
-            <div class="flex items-center gap-2">
-              <svg class="w-4 h-4 text-claude-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
-              </svg>
-              <span class="font-semibold text-xs text-claude-text">匿名反馈给创作者</span>
-            </div>
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-medium">接收目标: user01</span>
-          </div>
-
-          <div class="space-y-1 text-claude-muted text-[11px] leading-relaxed">
-            <p>无需登录、不记录个人身份。遇到使用问题、Bug 报错或功能改进建议，可直接提交给创作者 <strong class="text-claude-text">user01</strong>。</p>
-          </div>
-
-          <div class="space-y-2">
-            <div>
-              <label class="block text-claude-muted text-[11px] mb-1 font-medium">反馈类型</label>
-              <div class="grid grid-cols-3 gap-2">
-                <button type="button" onclick="selectFeedbackType('功能建议', this)" class="feedback-type-btn py-1.5 px-2 rounded-xl border border-claude-accent bg-claude-accent/10 text-claude-accent text-center font-medium">功能建议</button>
-                <button type="button" onclick="selectFeedbackType('遇到Bug', this)" class="feedback-type-btn py-1.5 px-2 rounded-xl border border-claude-border bg-claude-bg text-claude-muted text-center font-medium">遇到Bug</button>
-                <button type="button" onclick="selectFeedbackType('体验吐槽', this)" class="feedback-type-btn py-1.5 px-2 rounded-xl border border-claude-border bg-claude-bg text-claude-muted text-center font-medium">体验吐槽</button>
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-claude-muted text-[11px] mb-1 font-medium">反馈详细内容</label>
-              <textarea id="feedback-content-input" rows="5" placeholder="请写下你的宝贵建议或复现步骤..." class="w-full bg-claude-bg border border-claude-border rounded-xl p-3 text-xs select-text focus:outline-none leading-relaxed"></textarea>
-            </div>
-
-            <div class="flex items-center justify-between text-[11px] text-claude-muted pt-1">
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" id="feedback-attach-env" checked class="rounded border-claude-border text-claude-accent focus:ring-0">
-                <span>附带浏览器环境信息 (有助于排查Bug)</span>
-              </label>
-            </div>
-
-            <button onclick="submitAnonymousFeedback()" id="btn-submit-feedback" class="w-full py-2.5 bg-claude-accent text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 active:bg-claude-accentHover shadow-xs transition-all">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-              <span>立即提交匿名反馈</span>
-            </button>
-          </div>
-
-          <!-- 创作者专属配置折叠项 (创作者可配置自己的直收邮箱，纯前端直达) -->
-          <details class="pt-2 border-t border-claude-border/60 text-[11px]">
-            <summary class="text-claude-muted cursor-pointer hover:text-claude-text select-none">
-              🛠️ 创作者账号设置 (user01 直达通道配置)
-            </summary>
-            <div class="mt-2 p-2.5 bg-claude-bg rounded-xl border border-claude-border/80 space-y-2">
-              <div>
-                <label class="block text-claude-muted text-[10px] mb-0.5">创作者标识</label>
-                <input type="text" id="feedback-creator-id" value="user01" class="w-full bg-claude-card border border-claude-border rounded p-1.5 text-xs font-mono select-text" readonly>
-              </div>
-              <div>
-                <label class="block text-claude-muted text-[10px] mb-0.5">接收反馈的通知邮箱 (无需后端，直接发到该邮箱)</label>
-                <input type="email" id="feedback-receiver-email" placeholder="例如: your-email@qq.com" class="w-full bg-claude-card border border-claude-border rounded p-1.5 text-xs font-mono select-text">
-              </div>
-              <button onclick="saveFeedbackReceiverConfig()" class="px-2.5 py-1 bg-claude-card border border-claude-border text-claude-accent rounded text-[11px] font-medium active:bg-claude-hover">
-                保存接收端配置
-              </button>
-            </div>
-          </details>
-        </div>
-      </div>
-
-      <!-- 板块 6: 免责声明 -->
+      <!-- 板块 5: 免责声明 -->
       <div id="section-settings-disclaimer" class="space-y-4 hidden pt-1">
         <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 text-xs">
           <div class="flex items-center gap-2 border-b border-claude-border pb-2">
@@ -1468,7 +1407,7 @@
         scrollToGit = true;
       }
 
-      const tabs = ['ai', 'prompt', 'data', 'feedback', 'disclaimer'];
+      const tabs = ['ai', 'prompt', 'data', 'disclaimer'];
       tabs.forEach(tab => {
         const tabBtn = document.getElementById(`set-tab-${tab}`);
         const panel = document.getElementById(`section-settings-${tab}`);
@@ -1909,16 +1848,15 @@
 
     function syncGitPresetFormUI() {
       const cur = getCurrentGitPreset();
-      if (!cur) return;
       document.getElementById('git-preset-name').value = cur.name || '';
       document.getElementById('git-token-input').value = cur.token || '';
       document.getElementById('git-custom-repo').value = cur.repo || '';
       document.getElementById('git-branch').value = cur.branch || 'main';
-      state.git = { token: cur.token || '', repo: cur.repo || '', branch: cur.branch || 'main' };
+      state.git = { token: cur.token, repo: cur.repo, branch: cur.branch };
     }
 
     async function onGitPresetSelected() {
-      // 纯净恢复：直接从保存的预设对象还原输入框，改乱了只要切一下立刻恢复
+      // 纯净恢复：彻底以当时保存的预设数据完整恢复输入框，绝不读取界面临时脏数据
       const selId = document.getElementById('git-preset-selector').value;
       state.currentGitPresetId = selId;
       await storage.set('settings', { key: 'current_git_preset_id', val: selId });
@@ -2448,15 +2386,14 @@
 
     function syncPresetFormUI() {
       const cur = getCurrentPreset();
-      if (!cur) return;
-      document.getElementById('ai-preset-name').value = cur.name || '';
-      document.getElementById('ai-base-input').value = cur.baseUrl || '';
-      document.getElementById('ai-key-input').value = cur.apiKey || '';
+      document.getElementById('ai-preset-name').value = cur.name;
+      document.getElementById('ai-base-input').value = cur.baseUrl;
+      document.getElementById('ai-key-input').value = cur.apiKey;
       document.getElementById('model-pull-msg').innerText = cur.availableModels?.length ? `已拉取 ${cur.availableModels.length} 个模型` : '未拉取';
     }
 
     async function onPresetSelected() {
-      // 纯净恢复：切回原预设立刻恢复原样，绝不污染已保存的数据
+      // 纯净恢复：彻底以当时保存的 AI 预设数据恢复输入框与模型，不产生任何污染
       const selId = document.getElementById('preset-selector').value;
       state.currentPresetId = selId;
       await storage.set('settings', { key: 'current_preset_id', val: selId });
@@ -2537,7 +2474,8 @@
     }
 
     async function onPromptPresetSelected() {
-      // 彻底杜绝反向写回！只要切换下拉框，直接用选中的预设原始内容 100% 覆盖回显输入框
+      // 彻底移除之前恶意的 curPreset.content = document.getElementById('cfg-custom-prompt').value.trim() 赋值反写！
+      // 纯净加载：只要切换选择预设，立即 100% 恢复成当时保存的样式内容！
       const selId = document.getElementById('prompt-preset-selector').value;
       state.currentPromptPresetId = selId;
       await storage.set('settings', { key: 'current_prompt_preset_id', val: selId });
@@ -2549,71 +2487,6 @@
         await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
       }
     }
-
-    /* ================= 纯前端匿名反馈系统逻辑 (零成本、零部署) ================= */
-    let currentFeedbackType = '功能建议';
-    function selectFeedbackType(type, btn) {
-      currentFeedbackType = type;
-      document.querySelectorAll('.feedback-type-btn').forEach(b => {
-        b.className = 'feedback-type-btn py-1.5 px-2 rounded-xl border border-claude-border bg-claude-bg text-claude-muted text-center font-medium';
-      });
-      btn.className = 'feedback-type-btn py-1.5 px-2 rounded-xl border border-claude-accent bg-claude-accent/10 text-claude-accent text-center font-medium';
-    }
-
-    async function saveFeedbackReceiverConfig() {
-      const email = document.getElementById('feedback-receiver-email').value.trim();
-      await storage.set('settings', { key: 'creator_feedback_email', val: email });
-      alert('接收邮箱已保存！用户匿名提交的反馈将直达该邮箱。');
-    }
-
-    async function submitAnonymousFeedback() {
-      const text = document.getElementById('feedback-content-input').value.trim();
-      if (!text) return alert('请输入反馈内容');
-
-      const btn = document.getElementById('btn-submit-feedback');
-      btn.disabled = true;
-      btn.innerHTML = `<span class="animate-pulse">正在安全提交至创作者通道...</span>`;
-
-      const attachEnv = document.getElementById('feedback-attach-env').checked;
-      const savedEmailSetting = await storage.get('settings', 'creator_feedback_email');
-      const targetEmail = (savedEmailSetting && savedEmailSetting.val) ? savedEmailSetting.val : 'springcode_user01@163.com';
-
-      const payload = {
-        _subject: `[Spring Code 匿名反馈] 来自创作者账号(user01)的留言: ${currentFeedbackType}`,
-        创作者目标: 'user01',
-        反馈类别: currentFeedbackType,
-        反馈内容: text,
-        提交时间: new Date().toLocaleString(),
-        系统环境: attachEnv ? navigator.userAgent : '未附带'
-      };
-
-      try {
-        // 使用纯前端免服务器的 FormSubmit AJAX 接口，完全免费、零部署
-        const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(targetEmail)}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          document.getElementById('feedback-content-input').value = '';
-          alert('提交成功！您的匿名反馈已直接送达创作者 (user01)。');
-        } else {
-          // 备用通道提示
-          alert('反馈已生成！已为您记录并加密发送给创作者 user01。');
-        }
-      } catch (err) {
-        alert('反馈已记录！感谢你对 Spring Code 的支持。');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-          <span>立即提交匿名反馈</span>
-        `;
-      }
     }
 
     function saveAsNewPromptPreset() {
