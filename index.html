@@ -251,6 +251,13 @@
     </div>
 
     <!-- 侧边栏文件与版本历史容器 -->
+    <div class="flex items-center justify-between px-3.5 pt-2 pb-0 text-xs">
+      <span class="text-[11px] font-semibold text-claude-muted">已载入文件清单</span>
+      <button onclick="clearAllSessionFiles()" class="text-[10px] text-red-500 hover:underline active:opacity-60 flex items-center gap-0.5">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        <span>清空全部</span>
+      </button>
+    </div>
     <div id="right-drawer-file-list" class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
       <div class="text-[11px] text-claude-muted text-center py-8">当前会话暂无文件</div>
     </div>
@@ -2060,6 +2067,10 @@
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 下载
               </button>
+              <button onclick="deleteSessionFile('${filePath}')" class="px-1.5 py-0.5 text-[10px] bg-red-50 border border-red-200 text-red-600 rounded hover:bg-red-100 flex items-center gap-0.5 active:opacity-60" title="删除该文件并从AI上下文移除(节省Token并解决卡顿)">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                删除
+              </button>
             </div>
           </div>
           <div class="p-3 bg-claude-card space-y-1">
@@ -2072,6 +2083,106 @@
         `;
         container.appendChild(card);
       });
+    }
+
+    // 删除单个载入的文件（清理会话档案、剥离历史消息中的大段代码上下文、彻底释放Token与内存）
+    async function deleteSessionFile(filePath) {
+      if (!confirm(`确定从当前会话删除 [${filePath}] 吗？\n删除后将从上下文彻底剥离该文件，大幅节省 Token 并消除卡顿。`)) return;
+
+      // 1. 从会话档案与载入映射中移除
+      if (state.sessionFiles && state.sessionFiles[filePath]) {
+        delete state.sessionFiles[filePath];
+      }
+      if (state.loadedFilesMap && state.loadedFilesMap[filePath]) {
+        delete state.loadedFilesMap[filePath];
+      }
+      state.selectedPaths.delete(filePath);
+
+      // 2. 核心瘦身：从历史消息中清除该文件附带的 <<<FILE_CONTENT>>> 块
+      const escapedPath = filePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const fileTagRegex = new RegExp(`\\n*<<<FILE_CONTENT path="${escapedPath}">>>[\\s\\S]*?<<<END_FILE_CONTENT>>>\\n*`, 'g');
+
+      if (Array.isArray(state.messages)) {
+        state.messages.forEach(m => {
+          if (m.role === 'user') {
+            if (typeof m.apiContent === 'string') {
+              m.apiContent = m.apiContent.replace(fileTagRegex, '');
+            } else if (Array.isArray(m.apiContent)) {
+              m.apiContent.forEach(part => {
+                if (part.type === 'text') {
+                  part.text = part.text.replace(fileTagRegex, '');
+                }
+              });
+            }
+            if (m.displayObj && Array.isArray(m.displayObj.attachedFiles)) {
+              m.displayObj.attachedFiles = m.displayObj.attachedFiles.filter(f => f.path !== filePath);
+            }
+          }
+        });
+      }
+
+      // 3. 重新统计 Token 占用
+      let remainingTokens = 0;
+      state.messages.forEach(m => {
+        const contentStr = typeof m.apiContent === 'string' ? m.apiContent : (m.cleanText || m.content || JSON.stringify(m.displayObj || ''));
+        remainingTokens += Math.max(1, Math.round(contentStr.length / 3.6));
+      });
+      state.totalSessionTokens = remainingTokens;
+      document.getElementById('footer-token-count').innerText = `${state.totalSessionTokens} tok`;
+
+      // 4. 更新界面
+      renderRightDrawerFileList();
+      renderSelectedFileChips();
+      updateBatchActionBar();
+      rebuildChatStreamDOM();
+      await saveCurrentConversation();
+    }
+
+    // 一键清空当前会话全部载入文件
+    async function clearAllSessionFiles() {
+      const keys = Object.keys(state.sessionFiles || {});
+      if (keys.length === 0) return alert('当前会话暂无载入文件');
+      if (!confirm(`确定清空当前会话载入的全部 ${keys.length} 个文件吗？\n将彻底释放历史上下文占用的 Token，优化卡顿！`)) return;
+
+      keys.forEach(filePath => {
+        delete state.loadedFilesMap[filePath];
+        state.selectedPaths.delete(filePath);
+      });
+      state.sessionFiles = {};
+
+      // 剥离历史消息中所有的 FILE_CONTENT 标签
+      const allFilesRegex = /\n*<<<FILE_CONTENT path="[^"]+">>>[\s\S]*?<<<END_FILE_CONTENT>>>\n*/g;
+      if (Array.isArray(state.messages)) {
+        state.messages.forEach(m => {
+          if (m.role === 'user') {
+            if (typeof m.apiContent === 'string') {
+              m.apiContent = m.apiContent.replace(allFilesRegex, '');
+            } else if (Array.isArray(m.apiContent)) {
+              m.apiContent.forEach(part => {
+                if (part.type === 'text') {
+                  part.text = part.text.replace(allFilesRegex, '');
+                }
+              });
+            }
+            if (m.displayObj) m.displayObj.attachedFiles = [];
+          }
+        });
+      }
+
+      let remainingTokens = 0;
+      state.messages.forEach(m => {
+        const contentStr = typeof m.apiContent === 'string' ? m.apiContent : (m.cleanText || m.content || JSON.stringify(m.displayObj || ''));
+        remainingTokens += Math.max(1, Math.round(contentStr.length / 3.6));
+      });
+      state.totalSessionTokens = remainingTokens;
+      document.getElementById('footer-token-count').innerText = `${state.totalSessionTokens} tok`;
+
+      renderRightDrawerFileList();
+      renderSelectedFileChips();
+      updateBatchActionBar();
+      rebuildChatStreamDOM();
+      await saveCurrentConversation();
+      alert('已成功清空全部文件，上下文与内存已完成瘦身！');
     }
 
     // 回退指定文件到任意时间节点档案
