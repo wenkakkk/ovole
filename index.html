@@ -2487,8 +2487,7 @@
         await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
       }
     }
-    }
-
+    
     function saveAsNewPromptPreset() {
       const input = document.getElementById('new-prompt-preset-name-input');
       if (input) input.value = `自定义提示词_${getFormattedTime().replace(/:/g, '')}`;
