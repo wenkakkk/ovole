@@ -385,18 +385,15 @@
         <!-- 卡片 A: AI 接口配置 -->
         <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 shadow-2xs">
           <div class="flex items-center justify-between border-b border-claude-border pb-2">
-            <span class="font-semibold text-xs text-claude-text">AI 接口方案与预设</span>
-            <div class="flex items-center gap-2">
-              <button onclick="updateCurrentPreset()" class="text-emerald-700 active:underline text-[11px] font-medium">保存修改至此方案</button>
-              <button onclick="deleteCurrentPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
-            </div>
+            <span class="font-semibold text-xs text-claude-text">AI 接口预设</span>
+            <button onclick="deleteCurrentPreset()" class="text-red-500 active:underline text-[10px]">删除此预设</button>
           </div>
           
           <div class="flex gap-2">
             <select id="preset-selector" onchange="onPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
             </select>
             <button onclick="saveAsNewPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
-              另存方案
+              保存为预设
             </button>
           </div>
 
@@ -426,15 +423,23 @@
         <!-- 卡片 B: GitHub 仓库与合作者设置 (放在同一页面) -->
         <div id="section-settings-git-anchor" class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 text-xs shadow-2xs">
           <div class="flex items-center justify-between border-b border-claude-border pb-2">
-            <span class="font-semibold text-xs text-claude-text">GitHub 账号与仓库方案</span>
+            <span class="font-semibold text-xs text-claude-text">GitHub 账号与仓库预设</span>
             <div class="flex items-center gap-2">
-              <button onclick="updateCurrentGitPreset()" class="text-emerald-700 active:underline text-[11px] font-medium">保存修改至此方案</button>
               <button onclick="openGitDetailedTutorialModal()" class="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] font-semibold active:bg-emerald-100 flex items-center gap-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                 <span>保姆级接入教程</span>
               </button>
-              <button onclick="deleteCurrentGitPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
+              <button onclick="deleteCurrentGitPreset()" class="text-red-500 active:underline text-[10px]">删除此预设</button>
             </div>
+          </div>
+          
+          <div class="flex gap-2">
+            <select id="git-preset-selector" onchange="onGitPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
+            </select>
+            <button onclick="saveAsNewGitPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
+              保存为预设
+            </button>
+          </div>
           </div>
           
           <div class="flex gap-2">
@@ -478,11 +483,10 @@
       <div id="section-settings-prompt" class="space-y-4 hidden">
         <div class="bg-claude-card border border-claude-border rounded-2xl p-4 space-y-3 text-xs">
           <div class="flex items-center justify-between border-b border-claude-border pb-2">
-            <span class="font-semibold text-xs text-claude-text">系统提示词方案与预设</span>
+            <span class="font-semibold text-xs text-claude-text">系统提示词预设</span>
             <div class="flex items-center gap-2">
-              <button onclick="updateCurrentPromptPreset()" class="text-emerald-700 active:underline text-[11px] font-medium">保存修改至此预设</button>
               <button onclick="resetPromptToDefault()" class="text-claude-accent active:underline text-[10px]">恢复内置默认</button>
-              <button onclick="deleteCurrentPromptPreset()" class="text-red-500 active:underline text-[10px]">删除此方案</button>
+              <button onclick="deleteCurrentPromptPreset()" class="text-red-500 active:underline text-[10px]">删除此预设</button>
             </div>
           </div>
 
@@ -490,7 +494,7 @@
             <select id="prompt-preset-selector" onchange="onPromptPresetSelected()" class="flex-1 bg-claude-bg border border-claude-border rounded-lg p-2 text-xs focus:outline-none">
             </select>
             <button onclick="saveAsNewPromptPreset()" class="px-3 py-2 bg-claude-accent text-white rounded-lg font-medium active:bg-claude-accentHover text-xs flex-shrink-0">
-              另存预设
+              保存为预设
             </button>
           </div>
 
@@ -1765,7 +1769,7 @@
     }
 
     async function saveAllSettingsFromPage() {
-      // 仅将当前输入框内容作为运行时配置生效，绝对不再静默篡改预设存档模板
+      // 保存运行时生效配置，绝不触碰和篡改预设库
       const baseUrl = document.getElementById('ai-base-input').value.trim().replace(/\/+$/, "");
       const apiKey = document.getElementById('ai-key-input').value.trim();
 
@@ -1779,9 +1783,6 @@
       applyCustomCss(state.customCss);
 
       await storage.set('settings', { key: 'git_config', val: state.git });
-      await storage.set('settings', { key: 'current_git_preset_id', val: state.currentGitPresetId });
-      await storage.set('settings', { key: 'current_preset_id', val: state.currentPresetId });
-      await storage.set('settings', { key: 'current_prompt_preset_id', val: state.currentPromptPresetId });
       await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
       await storage.set('settings', { key: 'custom_css', val: state.customCss });
 
@@ -1855,6 +1856,7 @@
     }
 
     async function onGitPresetSelected() {
+      // 纯净恢复：彻底以当时保存的预设数据完整恢复输入框，绝不读取界面临时脏数据
       const selId = document.getElementById('git-preset-selector').value;
       state.currentGitPresetId = selId;
       await storage.set('settings', { key: 'current_git_preset_id', val: selId });
@@ -2391,6 +2393,7 @@
     }
 
     async function onPresetSelected() {
+      // 纯净恢复：彻底以当时保存的 AI 预设数据恢复输入框与模型，不产生任何污染
       const selId = document.getElementById('preset-selector').value;
       state.currentPresetId = selId;
       await storage.set('settings', { key: 'current_preset_id', val: selId });
@@ -2471,7 +2474,8 @@
     }
 
     async function onPromptPresetSelected() {
-      // 彻底删除切换前反向写回旧预设的污染逻辑，实现纯净载入目标预设
+      // 彻底移除之前恶意的 curPreset.content = document.getElementById('cfg-custom-prompt').value.trim() 赋值反写！
+      // 纯净加载：只要切换选择预设，立即 100% 恢复成当时保存的样式内容！
       const selId = document.getElementById('prompt-preset-selector').value;
       state.currentPromptPresetId = selId;
       await storage.set('settings', { key: 'current_prompt_preset_id', val: selId });
@@ -2482,6 +2486,7 @@
         document.getElementById('cfg-custom-prompt').value = target.content;
         await storage.set('settings', { key: 'custom_prompt', val: state.customPrompt });
       }
+    }
     }
 
     function saveAsNewPromptPreset() {
